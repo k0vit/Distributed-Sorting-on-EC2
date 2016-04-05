@@ -1,5 +1,6 @@
 package Slave.SortNode;
 
+import org.json.JSONArray;
 import org.json.simple.JSONObject;
 
 import com.mashape.unirest.http.Unirest;
@@ -27,25 +28,26 @@ public class Request {
 		obj3.put("nodeIp", "IP3");
 		obj3.put("instance-id", 3);
 		
-//		JSONArray array = new JSONArray();
-//		array.put(obj1);
-//		array.put(obj2);
-//		array.put(obj3);
+		JSONArray array = new JSONArray();
+		array.put(obj1);
+		array.put(obj2);
+		array.put(obj3);
 		
-//		JSONObject mainObject = new JSONObject();
-//		mainObject.put("partitions", array);
-		String body1 = obj1.toJSONString();
-		System.out.println(obj1.toJSONString());
-		Unirest.setTimeouts(10000, 0);
-		Unirest.post("http://localhost:4567/partitions").body(body1).asString();
-		
-		String body2 = obj2.toJSONString();
-		System.out.println(obj2.toJSONString());
-		Unirest.post("http://localhost:4567/partitions").body(body2).asString();
-		
-		String body3 = obj3.toJSONString();
-		System.out.println(obj3.toJSONString());
-		Unirest.post("http://localhost:4567/partitions").body(body3).asString();
+		JSONObject mainObject = new JSONObject();
+		mainObject.put("partitions", array);
+		System.out.println(mainObject.toJSONString());
+//		String body1 = obj1.toJSONString();
+//		System.out.println(obj1.toJSONString());
+//		Unirest.setTimeouts(10000, 0);
+//		Unirest.post("http://localhost:4567/partitions").body(body1).asString();
+//		
+//		String body2 = obj2.toJSONString();
+//		System.out.println(obj2.toJSONString());
+//		Unirest.post("http://localhost:4567/partitions").body(body2).asString();
+//		
+//		String body3 = obj3.toJSONString();
+//		System.out.println(obj3.toJSONString());
+//		Unirest.post("http://localhost:4567/partitions").body(body3).asString();
 //		
 		
 	}

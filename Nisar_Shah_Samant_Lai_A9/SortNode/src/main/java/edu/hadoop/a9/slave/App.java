@@ -55,7 +55,8 @@ public class App {
 	
 	public static void printConfiguration(Configuration config) {
 		String[] keys = {
-			"aws.accesskey","aws.secretkey","client.hostname","client.portno","app.bucketname","app.inputprefix"
+			"aws.accesskey","aws.secretkey","client.hostname","client.portno","app.bucketname","app.inputprefix",
+			"app.totalsamples","app.totaldatasamples"
 		};
 		for(String key : keys){
 			System.out.println(String.format("%s => %s", key, config.getProperty(key)));

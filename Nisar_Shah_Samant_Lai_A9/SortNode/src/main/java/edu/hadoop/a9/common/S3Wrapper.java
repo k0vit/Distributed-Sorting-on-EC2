@@ -2,7 +2,7 @@ package edu.hadoop.a9.common;
 
 import java.io.InputStream;
 import java.util.ArrayList;
-import java.util.Collection;
+import java.util.List;
 import java.util.logging.Logger;
 
 import com.amazonaws.AmazonServiceException;
@@ -19,7 +19,7 @@ public class S3Wrapper {
 		this.s3client = s3client;
 	}
 	
-	public Collection<String> getListOfObjects( String bucketName , String prefix )
+	public List<String> getListOfObjects( String bucketName , String prefix )
 		throws AmazonServiceException {
 		log.info(String.format("Requesting object listing for s3://%s/%s", bucketName, prefix));
 		

@@ -37,6 +37,10 @@ public class Configuration {
 	public String getProperty( String name ) {
 		return properties.getProperty(name);
 	}
+	
+	public int getIntProperty( String name ) {
+		return Integer.parseInt(properties.getProperty(name));
+	}
 
 	private Properties properties;
 	private static volatile Configuration config = null;

@@ -1,0 +1,56 @@
+REQUIREMENTS:
+1. Makefile should be copied to the same directory too to make sure it runs perfectly.
+2. copy the perf.txt file in the root project directory.
+
+---------------------------------------------------------------------------------------------------------------------------------------------
+
+RUNNING PROGRAM WITH MAKE FILE:
+make lr TIME=1(OR 200) INPUT_PATH=<S3 Input Dir> OUTPUT_PATH=<S3 Output Dir>
+
+For e.g:
+make ls TIME=200 OUTPUT_PATH=s3://aEight/output INPUT_PATH=s3://mrclassvitek/data
+
+where:
+TIME is the N a natural number representing scheduled flight minutes.
+INPUT_PATH is the s3 dir location of history files in aws.
+OUTPUT_PATH is the dir location in aws s3 where all the output files will be for cloud run.
+---------------------------------------------------------------------------------------------------------------------------------------------
+
+PERF.TXT:
+We are not using the same perf program as professor original code we have done some modifications. Hence use our perf.txt and uber-perf jar.
+
+You only have to put your aws accesskey and secret key.
+You can find "access_key" and "secret_key properties" under s3 details section in the perf.txt file. Please put it your details.
+
+Please modify the "jar" property in the perf.txt to <current location from where you are running the make file><Path.Seperator>nisar_kovit_a7-0.0.1-SNAPSHOT-jar-with-dependencies.jar
+
+Please modify the "name" property. Output of the program will be stored in the file as <name>.csv
+
+Please modifiy following properties under S3 details section:
+check.bucket = <bucket path>
+check.input = <input bucket path>
+check.logs = <log bucket path>
+delete.output = <output bucket path>
+upload.jar = <jar path in s3>
+
+Change aws emr cluster properties under section "# AWS EMR Cluster Configuration" as per your configuration.
+The only required property to change is "log.uri" pointing to the log dir.
+
+---------------------------------------------------------------------------------------------------------------------------------------------
+
+OUTPUT:
+When the make runs successfully the end result will be a browser window which opens with the generated report with the plot. if not check for an output.pdf file which will be generated.
+
+Output is generated on the cloud in the output folder specified with the output Path specified in the Makefile.
+
+The output is downloaded and merged in local directory.
+---------------------------------------------------------------------------------------------------------------------------------------------
+
+TROUBLESHOOTING:
+
+Please mail if there are issue while executing the program. 
+nisar.k@husky.neu.edu 
+shah.nai@husky.neu.edu
+yuanjian.lai@gmail.com 
+
+---------------------------------------------------------------------------------------------------------------------------------------------

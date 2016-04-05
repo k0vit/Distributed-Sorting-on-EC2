@@ -1,6 +1,7 @@
 package edu.hadoop.a9.common;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 
 public class Distribution {
 	public Distribution() {
@@ -21,7 +22,7 @@ public class Distribution {
 	}
 
 	public String toJson() {
-		return String.format("{\"min\":\"%d\", \"max\" : \"%d\"}", minTemp, maxTemp);
+		return String.format("{\"min\":\"%d\", \"max\" : \"%d\" , \"samples\" : [%s] }", minTemp, maxTemp, Arrays.toString(samples.toArray()));
 	}
 	
 	public int getMinTemp() {

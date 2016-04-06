@@ -3,17 +3,23 @@ package neu.edu.mr.manager;
 import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileWriter;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import com.amazonaws.AmazonServiceException;
 import com.amazonaws.auth.BasicAWSCredentials;
 import com.amazonaws.services.ec2.AmazonEC2Client;
+import com.amazonaws.services.ec2.model.AuthorizeSecurityGroupIngressRequest;
 import com.amazonaws.services.ec2.model.CreateKeyPairRequest;
 import com.amazonaws.services.ec2.model.CreateKeyPairResult;
+import com.amazonaws.services.ec2.model.CreateSecurityGroupRequest;
 import com.amazonaws.services.ec2.model.DescribeInstancesRequest;
 import com.amazonaws.services.ec2.model.DescribeInstancesResult;
 import com.amazonaws.services.ec2.model.Instance;
 import com.amazonaws.services.ec2.model.InstanceStateName;
+import com.amazonaws.services.ec2.model.IpPermission;
 import com.amazonaws.services.ec2.model.KeyPair;
 import com.amazonaws.services.ec2.model.Reservation;
 import com.amazonaws.services.ec2.model.RunInstancesRequest;
@@ -25,6 +31,7 @@ public class ClusterCreator {
 	private AmazonEC2Client amazonEC2Client;
 	private final static Logger LOGGER = Logger.getLogger(Main.CLUSTER_MANAGER_LOGGER);
 	private final String keyName = "a9key";
+	private final String securityGrpName = "a9securitygrp";
 
 	public ClusterCreator(ClusterParams params) {
 		this.params = params;
@@ -33,24 +40,26 @@ public class ClusterCreator {
 
 	public boolean createCluster() {
 		try {
-		createKey();
+			createKey();
+			createSecurityGroup();
+			
+			RunInstancesRequest runInstancesRequest = new RunInstancesRequest();
+			runInstancesRequest.withImageId(params.getBaseImageName())
+			.withInstanceType(params.getInstanceFlavor())
+			.withMinCount(1)
+			.withMaxCount(params.getNoOfInstance() + 1) // +1 for master
+			.withKeyName(keyName)
+			.withSecurityGroups(securityGrpName);
 
-		RunInstancesRequest runInstancesRequest = new RunInstancesRequest();
-		runInstancesRequest.withImageId(params.getBaseImageName())
-		.withInstanceType(params.getInstanceFlavor())
-		.withMinCount(1)
-		.withMaxCount(params.getNoOfInstance())
-		.withKeyName(keyName);
+			LOGGER.log(Level.FINE, "Creating instance with parameters " + 
+					params.getBaseImageName() + ", " + params.getInstanceFlavor() + ", " + params.getNoOfInstance()
+					+ ", " + keyName);
+			RunInstancesResult result = amazonEC2Client.runInstances(runInstancesRequest);
+			writeInstanceDetails(result.getReservation().getReservationId());
 
-		LOGGER.log(Level.FINE, "Creating instance with parameters " + 
-				params.getBaseImageName() + ", " + params.getInstanceFlavor() + ", " + params.getNoOfInstance()
-				+ ", " + keyName);
-		RunInstancesResult result = amazonEC2Client.runInstances(runInstancesRequest);
-		writeInstanceDetails(result.getReservation().getReservationId());
-		
-		amazonEC2Client.shutdown();
-		
-		return true;
+			amazonEC2Client.shutdown();
+
+			return true;
 		}
 		catch (Exception e) {
 			System.err.println("Cluster creation failed. Reason:" + e.getMessage());
@@ -65,6 +74,7 @@ public class ClusterCreator {
 			BufferedWriter bw = new BufferedWriter(fw);
 
 			LOGGER.log(Level.FINE, "Fetching instances for reservation id " + reservationId);
+			boolean clientNodeCreated = false;
 			for (Reservation reservation: amazonEC2Client.describeInstances().getReservations()) {
 				if (reservation.getReservationId().equals(reservationId)) {
 					for (Instance inst : reservation.getInstances()) {
@@ -86,7 +96,14 @@ public class ClusterCreator {
 						StringBuilder instanceDetails = new StringBuilder();
 						instanceDetails.append(inst.getInstanceId()).append(",");
 						instanceDetails.append(inst.getPrivateIpAddress()).append(",");
-						instanceDetails.append(inst.getPublicIpAddress()).append(System.lineSeparator());
+						instanceDetails.append(inst.getPublicIpAddress()).append(",");
+						if (!clientNodeCreated) {
+							instanceDetails.append('C').append(System.lineSeparator());
+							clientNodeCreated = true;
+						}
+						else {
+							instanceDetails.append('S').append(System.lineSeparator());
+						}
 						LOGGER.log(Level.FINE, "Instance details: " + instanceDetails.toString());
 						bw.write(instanceDetails.toString());
 					}
@@ -112,11 +129,10 @@ public class ClusterCreator {
 				+ "\nIts material is= \n" + keyPair.getKeyMaterial());
 	}
 
-	/*private void createSecurityGroup() {
+	private void createSecurityGroup() {
 		try {
-
 			CreateSecurityGroupRequest csgr = new CreateSecurityGroupRequest();
-			csgr.withGroupName(securityGrpName);
+			csgr.withGroupName(securityGrpName).withDescription("a9 security grp");
 			amazonEC2Client.createSecurityGroup(csgr);
 			LOGGER.log(Level.FINE, "Created security grp with name a9SecurityGrp");
 
@@ -124,26 +140,22 @@ public class ClusterCreator {
 			ingressRequest.withGroupName(securityGrpName).withIpPermissions(getIpPermissions());
 			amazonEC2Client.authorizeSecurityGroupIngress(ingressRequest);
 			LOGGER.log(Level.FINE, "Setting ingress rule allowing any ip address for all tcp flow");
-
-			AuthorizeSecurityGroupEgressRequest egressRequest = new AuthorizeSecurityGroupEgressRequest();
-			egressRequest.withGroupId(securityGrpName).withIpPermissions(getIpPermissions());
-			amazonEC2Client.authorizeSecurityGroupEgress(egressRequest);
-			LOGGER.log(Level.FINE, "Setting egress rule allowing any ip address for all tcp flow");
 		} 
 		catch (AmazonServiceException e) {
 			System.err.println("Failed to create security grp " + e.getErrorMessage());
 			System.exit(-1);
 		}
-	}*/
+	}
 
-	/*private List<IpPermission> getIpPermissions() {
+	// TODO: check if security grp can be made more secure
+	private List<IpPermission> getIpPermissions() {
 		List<IpPermission> permissions = new ArrayList<IpPermission>();
 
 		// supporting all the ips
 		List<String> ipRanges = new ArrayList<String>(1);
 		ipRanges.add("0.0.0.0/0");
 
-		// on port 6000 client and sort node communicates with each other and 22 for ssh
+		// on port 4567 client and sort node communicates with each other and 22 for ssh
 		IpPermission internalComm = new IpPermission();
 		internalComm.setIpProtocol("tcp");
 		internalComm.setFromPort(0);
@@ -152,5 +164,5 @@ public class ClusterCreator {
 
 		permissions.add(internalComm);
 		return permissions;
-	}*/
+	}
 }

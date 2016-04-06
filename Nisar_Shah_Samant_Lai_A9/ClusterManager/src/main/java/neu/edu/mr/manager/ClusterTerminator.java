@@ -1,6 +1,7 @@
 package neu.edu.mr.manager;
 
 import java.io.BufferedReader;
+import java.io.File;
 import java.io.FileReader;
 import java.util.ArrayList;
 import java.util.List;
@@ -9,25 +10,52 @@ import java.util.logging.Logger;
 
 import com.amazonaws.auth.BasicAWSCredentials;
 import com.amazonaws.services.ec2.AmazonEC2Client;
+import com.amazonaws.services.ec2.model.DescribeInstancesRequest;
+import com.amazonaws.services.ec2.model.DescribeInstancesResult;
+import com.amazonaws.services.ec2.model.Instance;
+import com.amazonaws.services.ec2.model.InstanceStateName;
 import com.amazonaws.services.ec2.model.TerminateInstancesRequest;
+import com.amazonaws.services.s3.transfer.TransferManager;
 
 public class ClusterTerminator {
 
 	private AmazonEC2Client amazonEC2Client;
+	BasicAWSCredentials crediantials;
 	private final static Logger LOGGER = Logger.getLogger(Main.CLUSTER_MANAGER_LOGGER);
 
 	public ClusterTerminator(ClusterParams params) {
-		amazonEC2Client = new AmazonEC2Client(new BasicAWSCredentials(params.getAccessKey(), params.getSecretKey()));
+		crediantials = new BasicAWSCredentials(params.getAccessKey(), params.getSecretKey());
+		amazonEC2Client = new AmazonEC2Client(crediantials);
 	}
 
 	public boolean terminateCluster() {
-
 		List<String> instanceIds = getTerminateInstanceIds();
-		TerminateInstancesRequest req = new TerminateInstancesRequest(instanceIds);
-		LOGGER.log(Level.FINE, "terminating instances " + instanceIds);
-		amazonEC2Client.terminateInstances(req);
-		amazonEC2Client.shutdown();
-		return false;
+		try {
+			TerminateInstancesRequest req = new TerminateInstancesRequest(instanceIds);
+			amazonEC2Client.terminateInstances(req);
+			LOGGER.log(Level.FINE, "terminating instances " + instanceIds);
+			for (String id : instanceIds) {
+				DescribeInstancesRequest statusReq = new DescribeInstancesRequest();
+				statusReq.withInstanceIds(id);
+				String state = InstanceStateName.Running.toString();
+				while (!state.equals(InstanceStateName.Terminated.toString())) {
+					Thread.sleep(10000);
+					LOGGER.log(Level.FINE, "Sleeping for 10 seconds. State not changed");
+					DescribeInstancesResult result = amazonEC2Client.describeInstances(statusReq);
+					if (result.getReservations().size() > 0) {
+						Instance inst = result.getReservations().get(0).getInstances().get(0);
+						state = inst.getState().getName();
+						LOGGER.log(Level.FINE, "State changed to " + state);
+					}
+				}
+			}
+			amazonEC2Client.shutdown();
+			return true;
+		}
+		catch (Exception e) {
+			System.err.println("Failed to terminate instances " + instanceIds);
+			return false;
+		}
 	}
 
 	private List<String> getTerminateInstanceIds() {
@@ -46,5 +74,21 @@ public class ClusterTerminator {
 			System.exit(-1);
 		}
 		return instanceIds;
+	}
+
+	public boolean downloadOutput(String outputPath) {
+		try {
+			TransferManager tx = new TransferManager(crediantials);
+			String simplifiedPath = (outputPath.replace("s3://", ""));
+			String bucketName = simplifiedPath.substring(0, simplifiedPath.indexOf("/"));
+			String key = simplifiedPath.substring(simplifiedPath.indexOf("/") + 1);
+			tx.downloadDirectory(bucketName, key, new File(System.getProperty("user.dir")));
+			return true;
+		}
+		catch(Exception ex) {
+			System.err.println("Failed to download output. Reason " + ex.getMessage());
+			return false;
+		}
+
 	}
 }

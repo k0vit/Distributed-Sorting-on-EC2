@@ -15,7 +15,16 @@ public class Main {
 	public static final String CLUSTER_MANAGER_LOGGER = "ClusterManager";
 	private final static Logger LOGGER = Logger.getLogger(CLUSTER_MANAGER_LOGGER);
 	public static final String CLUSTER_DETAILS_FILE_NAME = "InstanceDetails.csv";
+	public static final String CLIENT_JAR = "client-0.0.1-SNAPSHOT-jar-with-dependencies.jar";
+	public static final String SORT_NODE_JAR = "SortNode-0.0.1-SNAPSHOT-jar-with-dependencies.jar";
 
+	/**
+	 * 0 -action 
+	 * 1 - number of nodes or sort column name or s3 output path based on action
+	 * 2 - s3 input location
+	 * 3 - s3 output location
+	 * @param args
+	 */
 	public static void main(String[] args) {
 		logSetup();
 		
@@ -31,12 +40,18 @@ public class Main {
 			ClusterTerminator terminator = new ClusterTerminator(params);
 			boolean clusterTerminated = terminator.terminateCluster();
 			LOGGER.log(Level.FINE, "Cluster terminated successfully: " + clusterTerminated);
+			boolean downloadOutput = terminator.downloadOutput(args[1]);
+			LOGGER.log(Level.FINE, "downloaded output successfully: " + downloadOutput);
+		}
+		else if (args[0].equalsIgnoreCase("start")) {
+			ClusterStarter starter = new ClusterStarter(params);
+			boolean uploadFile = starter.uploadToS3();
+			LOGGER.log(Level.FINE, "File uploaded successfully: " + uploadFile);
 		}
 		else {
 			System.err.println("Incorrect action " + args[0] + ". Action can either be [create] or [terminate]");
 			System.exit(-1);
 		}
-
 	}
 
 	private static void logSetup() {
@@ -77,6 +92,9 @@ class ClusterParams {
 	}
 	public int getNoOfInstance() {
 		return Integer.parseInt(clusterProp.getProperty("InstanceNumber"));
+	}
+	public String getBucket() {
+		return clusterProp.getProperty("Bucket");
 	}
 
 	private void readProperties(String fileName) {

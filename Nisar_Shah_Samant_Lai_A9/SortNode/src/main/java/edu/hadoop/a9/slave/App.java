@@ -19,7 +19,7 @@ public class App {
 		log.info("Application Initialized");
 		Configuration config = Configuration.getConfiguration();
 		printConfiguration(config);
-		
+		sendSampleDistribution(config);
 		log.info("Application Finished");
 	}
 	

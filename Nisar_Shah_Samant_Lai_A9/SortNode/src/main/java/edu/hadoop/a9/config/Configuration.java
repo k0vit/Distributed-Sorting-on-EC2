@@ -6,6 +6,7 @@ import java.io.StringWriter;
 import java.util.Properties;
 import java.util.logging.Logger;
 
+//TODO we dont need configuration at all
 public class Configuration {
 	public Configuration() { 
 		properties = new Properties();

@@ -80,7 +80,7 @@ public class AfterPartitionProgram {
 				ipToMinMap.put(nodeIp, minimumPartition);
 			}
 			System.out.println(request.body());
-			// Read S3 data line by line and create a map
+			// Read S3 data line by line
 			File[] dataFolder = listDirectory("/home/naineel/a9Data/oneFolder/");
 			for (File file : dataFolder) {
 				FileInputStream fis = new FileInputStream(file);
@@ -97,13 +97,15 @@ public class AfterPartitionProgram {
 							// assign
 							// to a mapElement in the entireData map
 							for (String instanceIp : ipToMaxMap.keySet()) {
-								if (dryBulbTemp > ipToMinMap.get(instanceIp) && dryBulbTemp <= ipToMaxMap.get(instanceIp)) {
+								if (dryBulbTemp >= ipToMinMap.get(instanceIp) && dryBulbTemp <= ipToMaxMap.get(instanceIp)) {
 									if (instanceIp == INSTANCE_IP) {
 										unsortedData.add(line);
 									} else {
+										//TODO add 100000 records and then send it as post.
+										//TODO use StringBuilder as 20000 records colon separated.
 										String record = Arrays.toString(line);
-										byte[] bytes = record.getBytes();
-										Unirest.post("http://" + instanceIp + ":" + "1234" + "/records").body(bytes).asString();
+//										byte[] bytes = record.getBytes();
+										Unirest.post("http://" + instanceIp + ":" + "1234" + "/records").body(record).asString();
 									}
 									break;
 								}
@@ -121,8 +123,8 @@ public class AfterPartitionProgram {
 		});
 		
 		post("/records", (request, response) -> {
-			byte[] bytes = request.bodyAsBytes();
-			String record = new String(bytes);
+			//TODO colon separated list of records.
+			String record = request.body();
 			System.out.println(record);
 			response.status(200);
 			response.body("Awesome");
@@ -130,6 +132,9 @@ public class AfterPartitionProgram {
 		});
 
 		System.out.println("---End of program---");
+		
+		//TODO create one more post which will receive sort node message that they are done sorting data and then sortYourOwnData and 
+		// use INSTANCE_ID to append to outputfile and then write to S3 output path.
 	}
 
 	private static void readFileAndSetProps(String configFileName) throws NumberFormatException, IOException {

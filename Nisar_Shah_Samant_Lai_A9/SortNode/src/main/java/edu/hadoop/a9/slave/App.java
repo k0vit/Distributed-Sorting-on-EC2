@@ -14,6 +14,8 @@ import com.amazonaws.services.s3.AmazonS3Client;
 import edu.hadoop.a9.common.S3Wrapper;
 import edu.hadoop.a9.config.Configuration;
 
+//TODO we dont need configuration you will get 5 arguments as 
+//<input s3 path> <output s3 path> <config file path s3> <aws access key> <aws secret key>
 public class App {
 	public static void main(String[] args) {
 		log.info("Application Initialized");
@@ -34,6 +36,8 @@ public class App {
 			AmazonS3Client s3client = new AmazonS3Client(new BasicAWSCredentials(accessKey, secretKey));
 			S3Wrapper wrapper = new S3Wrapper(s3client);
 			
+			//TODO Read data from each file and store in memory in local directory.
+			//TODO Client will send the file names that need to be downloaded from S3 and you need to download those files only.
 			List<String> objectIds = wrapper.getListOfObjects(bucketName, prefix);
 			int totalSamples = config.getIntProperty("app.totalsamples");
 			Random rnd = new Random();
@@ -53,6 +57,7 @@ public class App {
 		}
 	}
 	
+	//TODO dont need it
 	public static void printConfiguration(Configuration config) {
 		String[] keys = {
 			"aws.accesskey","aws.secretkey","client.url","app.bucketname","app.inputprefix",

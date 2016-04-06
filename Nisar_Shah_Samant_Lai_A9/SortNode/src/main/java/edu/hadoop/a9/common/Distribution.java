@@ -3,6 +3,7 @@ package edu.hadoop.a9.common;
 import java.util.ArrayList;
 import java.util.Arrays;
 
+//TODO use json simple
 public class Distribution {
 	public Distribution() {
 		minTemp = Integer.MAX_VALUE;

@@ -47,6 +47,9 @@ public class Client {
 		S3Service awsAgent = new S3Service(awsCred);
 		String configFileName = awsAgent.readOutputFromS3(configFilePath, awsCred);
 		
+		//TODO Code to send file names to each sort node. /files post request
+		
+		
 		/*
 		 * listen to /samples
 		 */
@@ -56,6 +59,7 @@ public class Client {
 			request_count++;
 			LOG.log(Level.FINE, req.body().toString());
 			samples.add(new Distribution(req.body().toString()));
+			//TODO delete
 			slaves.add(req.ip());
 			if (request_count==SLAVE_NUM){
 				postResult(samples);
@@ -63,8 +67,12 @@ public class Client {
 			
 			return res.body().toString();
 		});
+		
+		//TODO post method to get signal from sort node that its done and to calculate timing.
+		//System.println() to the console with t
 	}
-
+ 
+	//TODO SLAVES list change
 	private static String[] readConfigFileForInformation(String configFileName) throws IOException {
 		List<String> ipList = new ArrayList<String>();
 		FileReader fr = new FileReader(configFileName);
@@ -73,7 +81,7 @@ public class Client {
 		while ((line = br.readLine()) != null) {
 			String[] column = line.split(",");
 			if (column[3].equals("S")) {
-				ipList.add(column[2]);
+				ipList.add(column[1]);
 			}
 		}
 		SLAVE_NUM = ipList.size();
@@ -102,6 +110,7 @@ public class Client {
 	 * @param dis
 	 * @return
 	 */
+	//TODO remove min,max and for last node  max =LONG.MAX and for first node  min = LONG.MIN
 	public static JSONObject calculateDistribution(ArrayList<Distribution> dis) {
 		ArrayList<Long> samples = new ArrayList<>();
 		long min = Long.MAX_VALUE;
@@ -139,6 +148,7 @@ public class Client {
 				if (node==slaves.size()-1) job.put("max",max);
 				else job.put("max",end); 
 				job.put("nodeIp",slaves.get(node));
+				//TODO remove
 				job.put("instanceId",node);
 				arr.add(job);
 				i+=range;

@@ -36,6 +36,7 @@ public class Task implements Runnable {
 		}
 	}
 	
+	//TODO remove min max, we dont need
 	public Distribution GetDistribution() throws Exception {
 		InputStream is = s3client.getObjectInputStream(bucketName, objectId);
 		is = new GZIPInputStream(is);

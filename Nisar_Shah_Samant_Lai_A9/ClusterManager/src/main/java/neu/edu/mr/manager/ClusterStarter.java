@@ -1,6 +1,8 @@
 package neu.edu.mr.manager;
 
 import java.io.File;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 import com.amazonaws.auth.BasicAWSCredentials;
 import com.amazonaws.regions.Region;
@@ -12,6 +14,7 @@ public class ClusterStarter {
 	
 	private ClusterParams params;
 	private AmazonS3Client client;
+	private final static Logger LOGGER = Logger.getLogger(Main.CLUSTER_MANAGER_LOGGER);
 	
 	public ClusterStarter(ClusterParams params) {
 		client = new AmazonS3Client(new BasicAWSCredentials(params.getAccessKey(), params.getSecretKey()));
@@ -20,10 +23,20 @@ public class ClusterStarter {
 	}
 
 	public boolean uploadToS3() {
+		try {
 		uploadFile(Main.CLUSTER_DETAILS_FILE_NAME);
+		LOGGER.log(Level.FINE, Main.CLUSTER_DETAILS_FILE_NAME + " uploaded successfully");
 		uploadFile(Main.CLIENT_JAR);
+		LOGGER.log(Level.FINE, Main.CLIENT_JAR + " uploaded successfully");
 		uploadFile(Main.SORT_NODE_JAR);
-		return false;
+		LOGGER.log(Level.FINE, Main.SORT_NODE_JAR + " uploaded successfully");
+		}
+		catch (Exception e) {
+			System.err.println("Failed to upload following files to s3 " + Main.CLIENT_JAR + ", " + Main.SORT_NODE_JAR
+			+ ", " + Main.CLUSTER_DETAILS_FILE_NAME + ". Reason " + e.getMessage());
+			return false;
+		}
+		return true;
 	}
 
 	boolean uploadFile(String file) {

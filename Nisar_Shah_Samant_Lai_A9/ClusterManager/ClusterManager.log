@@ -207,3 +207,9 @@ Apr 06, 2016 1:36:12 AM neu.edu.mr.manager.ClusterTerminator terminateCluster
 FINE: State changed to terminated
 Apr 06, 2016 1:36:12 AM neu.edu.mr.manager.Main main
 FINE: Cluster terminated successfully: true
+Apr 06, 2016 4:56:53 AM neu.edu.mr.manager.Main main
+FINE: Action to be performed start
+Apr 06, 2016 4:58:12 AM neu.edu.mr.manager.Main main
+FINE: Action to be performed start
+Apr 06, 2016 4:58:46 AM neu.edu.mr.manager.Main main
+FINE: File uploaded successfully: false

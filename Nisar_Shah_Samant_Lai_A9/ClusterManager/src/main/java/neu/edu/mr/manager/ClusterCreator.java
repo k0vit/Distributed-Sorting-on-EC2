@@ -78,8 +78,6 @@ public class ClusterCreator {
 							LOGGER.log(Level.FINE, "Sleeping for 10 seconds. State not changed");
 							DescribeInstancesResult result = amazonEC2Client.describeInstances(statusReq);
 							if (result.getReservations().size() > 0) {
-								System.out.println(result.getReservations().size());
-								System.out.println(result.getReservations().get(0).getInstances().size());
 								inst = result.getReservations().get(0).getInstances().get(0);
 								state = inst.getState().getName();
 								LOGGER.log(Level.FINE, "State changed to " + state);

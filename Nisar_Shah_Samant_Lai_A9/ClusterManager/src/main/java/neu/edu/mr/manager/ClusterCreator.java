@@ -21,8 +21,8 @@ import com.amazonaws.services.ec2.model.RunInstancesResult;
 
 public class ClusterCreator {
 
-	ClusterParams params;
-	AmazonEC2Client amazonEC2Client;
+	private ClusterParams params;
+	private AmazonEC2Client amazonEC2Client;
 	private final static Logger LOGGER = Logger.getLogger(Main.CLUSTER_MANAGER_LOGGER);
 	private final String keyName = "a9key";
 
@@ -32,6 +32,7 @@ public class ClusterCreator {
 	}
 
 	public boolean createCluster() {
+		try {
 		createKey();
 
 		RunInstancesRequest runInstancesRequest = new RunInstancesRequest();
@@ -46,9 +47,15 @@ public class ClusterCreator {
 				+ ", " + keyName);
 		RunInstancesResult result = amazonEC2Client.runInstances(runInstancesRequest);
 		writeInstanceDetails(result.getReservation().getReservationId());
+		
 		amazonEC2Client.shutdown();
 		
 		return true;
+		}
+		catch (Exception e) {
+			System.err.println("Cluster creation failed. Reason:" + e.getMessage());
+			return false;
+		}
 	}
 
 	private void writeInstanceDetails(String reservationId) {
@@ -79,7 +86,6 @@ public class ClusterCreator {
 							}
 						}
 						StringBuilder instanceDetails = new StringBuilder();
-						instanceDetails.append(reservationId).append(",");
 						instanceDetails.append(inst.getInstanceId()).append(",");
 						instanceDetails.append(inst.getPrivateIpAddress()).append(",");
 						instanceDetails.append(inst.getPublicIpAddress()).append(System.lineSeparator());

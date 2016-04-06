@@ -18,17 +18,17 @@ public class Main {
 
 	public static void main(String[] args) {
 		logSetup();
-
+		
+		ClusterParams params = new ClusterParams("cluster.properties");
+		
 		LOGGER.log(Level.FINE, "Action to be performed " + args[0]);
-
 		if (args[0].equalsIgnoreCase("create")) {
-			ClusterParams params = new ClusterParams("cluster.properties");
 			ClusterCreator creator = new ClusterCreator(params);
 			boolean clusterCreated = creator.createCluster();
 			LOGGER.log(Level.FINE, "Cluster created successfully: " + clusterCreated);
 		}
 		else if (args[0].equalsIgnoreCase("terminate")) {
-			ClusterTerminator terminator = new ClusterTerminator();
+			ClusterTerminator terminator = new ClusterTerminator(params);
 			boolean clusterTerminated = terminator.terminateCluster();
 			LOGGER.log(Level.FINE, "Cluster terminated successfully: " + clusterTerminated);
 		}
@@ -45,7 +45,7 @@ public class Main {
 		logger.setLevel(Level.FINE);
 		FileHandler logFileHandler = null;
 		try {
-			logFileHandler = new FileHandler("ClusterManager.log");
+			logFileHandler = new FileHandler("ClusterManager.log", true);
 			SimpleFormatter formatterTxt = new SimpleFormatter();
 			logFileHandler.setFormatter(formatterTxt);
 			logger.addHandler(logFileHandler);

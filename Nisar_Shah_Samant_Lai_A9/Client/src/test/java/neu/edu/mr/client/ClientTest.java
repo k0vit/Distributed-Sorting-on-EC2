@@ -10,7 +10,7 @@ import junit.framework.TestSuite;
 
 public class ClientTest extends TestCase{
 	
-	ArrayList<Integer> sortedsample;
+	ArrayList<Long> sortedsample;
 	ArrayList<String> slaves;
 	protected void setUp(){
 		sortedsample = new ArrayList<>();
@@ -30,7 +30,7 @@ public class ClientTest extends TestCase{
 			slaves.add(Integer.toString(i));
 		}
 		for(int i=1;i<=100;i++){
-			sortedsample.add(i);
+			sortedsample.add((long) i);
 		}
 		JSONObject obj = Client.partition(sortedsample,slaves,-1,200);
 		System.out.println(obj.toJSONString());

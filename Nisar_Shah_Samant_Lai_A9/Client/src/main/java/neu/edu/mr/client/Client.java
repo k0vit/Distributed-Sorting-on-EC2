@@ -16,6 +16,7 @@ public class Client {
 	private final static Logger LOG = Logger.getLogger("Client");
 	private final static String SAMPLE_FILE_URL = "/samples";
 	private final static String DISTRIBUTION_URL = "/partitions";
+	private final static String DEFAULT_PORT = "4567";
 	private static int request_count = 0;
 	public final static int SLAVE_NUM = 3;
 	private static ArrayList<Distribution> samples = new ArrayList<>();
@@ -29,11 +30,13 @@ public class Client {
 			res.status(200);
 			res.body("SUCCESS RECEIVE SAMPLE");
 			request_count++;
-			samples.add(new Distribution(res.body().toString()));
+			LOG.log(Level.FINE, req.body().toString());
+			samples.add(new Distribution(req.body().toString()));
 			slaves.add(req.ip());
 			if (request_count==SLAVE_NUM){
 				postResult(samples);
 			}
+			
 			return res.body().toString();
 		});
 	}
@@ -46,9 +49,10 @@ public class Client {
 	public static void postResult(ArrayList<Distribution> samples){
 		JSONObject obj = calculateDistribution(samples);
 		String ret = obj.toJSONString();
+		LOG.log(Level.INFO,"partitions: "+ret);
 		for(String slaveIp:slaves){
 			try {
-				Unirest.post("http://" + slaveIp + DISTRIBUTION_URL).body(ret).asString();
+				Unirest.post("http://" + slaveIp + ":"+DEFAULT_PORT+DISTRIBUTION_URL).body(ret).asString();
 			} catch (UnirestException e) {
 				LOG.log(Level.SEVERE, "UNABLE TO POST RESULT TO SLAVE: " + slaveIp);
 			}
@@ -61,9 +65,9 @@ public class Client {
 	 * @return
 	 */
 	public static JSONObject calculateDistribution(ArrayList<Distribution> dis) {
-		ArrayList<Integer> samples = new ArrayList<>();
-		int min = Integer.MAX_VALUE;
-		int max = Integer.MIN_VALUE;
+		ArrayList<Long> samples = new ArrayList<>();
+		long min = Long.MAX_VALUE;
+		long max = Long.MIN_VALUE;
 		for(Distribution distribution : dis){
 			samples.addAll(distribution.getSamples());
 			min = Math.min(min,distribution.getMin());
@@ -79,9 +83,8 @@ public class Client {
 	 * @return
 	 */
 	@SuppressWarnings("unchecked")
-	public static JSONObject partition(ArrayList<Integer> samples,ArrayList<String> slaves,int min,int max){
+	public static JSONObject partition(ArrayList<Long> samples,ArrayList<String> slaves,long min,long max){
 		Collections.sort(samples);
-		System.out.println("partitioning");
 		int length = samples.size();
 		JSONObject obj = new JSONObject();
 		JSONArray arr = new JSONArray();
@@ -90,7 +93,7 @@ public class Client {
 			for(int i=0,node=0;i<length&&node<slaves.size();node++){
 				JSONObject job = new JSONObject();
 				int endpos = Math.min(length-1,i+range);
-				int end = samples.get(endpos);
+				long end = samples.get(endpos);
 				
 				if (node==0) job.put("min",min);
 				else job.put("min", samples.get(i));

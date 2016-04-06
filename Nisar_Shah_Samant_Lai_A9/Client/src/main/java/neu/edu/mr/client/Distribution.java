@@ -17,9 +17,9 @@ public class Distribution {
 	public static final String delimiter = ",";
 	private final static Logger LOG = Logger.getLogger("Distribution");
 	private static JSONParser parser = new JSONParser();
-	private int max;
-	private int min;
-	private ArrayList<Integer> samples;
+	private long max;
+	private long min;
+	private ArrayList<Long> samples;
 	
 	public Distribution(File file){
 		if (!file.getName().endsWith(".dis.json")){
@@ -27,13 +27,10 @@ public class Distribution {
 		}
 		try{
 			JSONObject obj = (JSONObject) parser.parse(new FileReader(file));
-			max = (Integer) obj.get("max");
-			min = (Integer) obj.get("min");
-			String[] arr = ((String) obj.get("samples")).split(delimiter);
-			samples = new ArrayList<>();
-			for(String num:arr){
-				samples.add(Integer.parseInt(num));
-			}
+			max = (Long) obj.get("max");
+			min = (Long) obj.get("min");
+			JSONArray arr = (JSONArray) obj.get("samples");
+			samples = new ArrayList<>(arr);
 		} catch (Exception e){
 			LOG.log(Level.SEVERE, e.getMessage());
 		}
@@ -42,19 +39,19 @@ public class Distribution {
 	public Distribution(String str){
 		try{
 			JSONObject obj = (JSONObject) parser.parse(str);
-			max = (Integer) obj.get("max");
-			min = (Integer) obj.get("min");
+			max = (Long) obj.get("max");
+			min = (Long) obj.get("min");
 			JSONArray arr = (JSONArray) obj.get("samples");
 			samples = new ArrayList<>();
 			for(Object num:arr.toArray()){
-				samples.add((Integer) num);
+				samples.add((Long) num);
 			}
 		} catch (Exception e){
 			LOG.log(Level.SEVERE, e.getMessage());
 		}
 	}
 
-	public int getMax() {
+	public long getMax() {
 		return max;
 	}
 
@@ -62,7 +59,7 @@ public class Distribution {
 		this.max = max;
 	}
 
-	public int getMin() {
+	public long getMin() {
 		return min;
 	}
 
@@ -70,11 +67,11 @@ public class Distribution {
 		this.min = min;
 	}
 
-	public ArrayList<Integer> getSamples() {
+	public ArrayList<Long> getSamples() {
 		return samples;
 	}
 
-	public void setSamples(ArrayList<Integer> samples) {
+	public void setSamples(ArrayList<Long> samples) {
 		this.samples = samples;
 	}
 	

@@ -20,7 +20,7 @@ public class Main {
 
 	/**
 	 * 0 -action 
-	 * 1 - number of nodes or sort column name
+	 * 1 - number of nodes or sort column name or s3 output path based on action
 	 * 2 - s3 input location
 	 * 3 - s3 output location
 	 * @param args
@@ -40,6 +40,8 @@ public class Main {
 			ClusterTerminator terminator = new ClusterTerminator(params);
 			boolean clusterTerminated = terminator.terminateCluster();
 			LOGGER.log(Level.FINE, "Cluster terminated successfully: " + clusterTerminated);
+			boolean downloadOutput = terminator.downloadOutput(args[1]);
+			LOGGER.log(Level.FINE, "downloaded output successfully: " + downloadOutput);
 		}
 		else if (args[0].equalsIgnoreCase("start")) {
 			ClusterStarter starter = new ClusterStarter(params);
@@ -50,7 +52,6 @@ public class Main {
 			System.err.println("Incorrect action " + args[0] + ". Action can either be [create] or [terminate]");
 			System.exit(-1);
 		}
-
 	}
 
 	private static void logSetup() {

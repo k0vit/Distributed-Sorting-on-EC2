@@ -1,6 +1,7 @@
 package neu.edu.mr.manager;
 
 import java.io.BufferedReader;
+import java.io.File;
 import java.io.FileReader;
 import java.util.ArrayList;
 import java.util.List;
@@ -14,14 +15,17 @@ import com.amazonaws.services.ec2.model.DescribeInstancesResult;
 import com.amazonaws.services.ec2.model.Instance;
 import com.amazonaws.services.ec2.model.InstanceStateName;
 import com.amazonaws.services.ec2.model.TerminateInstancesRequest;
+import com.amazonaws.services.s3.transfer.TransferManager;
 
 public class ClusterTerminator {
 
 	private AmazonEC2Client amazonEC2Client;
+	BasicAWSCredentials crediantials;
 	private final static Logger LOGGER = Logger.getLogger(Main.CLUSTER_MANAGER_LOGGER);
 
 	public ClusterTerminator(ClusterParams params) {
-		amazonEC2Client = new AmazonEC2Client(new BasicAWSCredentials(params.getAccessKey(), params.getSecretKey()));
+		crediantials = new BasicAWSCredentials(params.getAccessKey(), params.getSecretKey());
+		amazonEC2Client = new AmazonEC2Client(crediantials);
 	}
 
 	public boolean terminateCluster() {
@@ -70,5 +74,21 @@ public class ClusterTerminator {
 			System.exit(-1);
 		}
 		return instanceIds;
+	}
+
+	public boolean downloadOutput(String outputPath) {
+		try {
+			TransferManager tx = new TransferManager(crediantials);
+			String simplifiedPath = (outputPath.replace("s3://", ""));
+			String bucketName = simplifiedPath.substring(0, simplifiedPath.indexOf("/"));
+			String key = simplifiedPath.substring(simplifiedPath.indexOf("/") + 1);
+			tx.downloadDirectory(bucketName, key, new File(System.getProperty("user.dir")));
+			return true;
+		}
+		catch(Exception ex) {
+			System.err.println("Failed to download output. Reason " + ex.getMessage());
+			return false;
+		}
+
 	}
 }

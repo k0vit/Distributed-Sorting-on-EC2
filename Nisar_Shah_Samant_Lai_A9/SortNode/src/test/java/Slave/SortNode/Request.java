@@ -1,7 +1,5 @@
 package Slave.SortNode;
 
-import java.util.Arrays;
-
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 
@@ -43,14 +41,14 @@ public class Request {
 		Unirest.setTimeouts(10000, 0);
 		Unirest.post("http://localhost:4567/partitions").body(body1).asString();
 		
-		String body2 = obj2.toJSONString();
-		System.out.println(obj2.toJSONString());
-		Unirest.post("http://localhost:4567/partitions").body(body2).asString();
-		
-		String body3 = obj3.toJSONString();
-		System.out.println(obj3.toJSONString());
-		Unirest.post("http://localhost:4567/partitions").body(body3).asString();
+//		String body2 = obj2.toJSONString();
+//		System.out.println(obj2.toJSONString());
+//		Unirest.post("http://localhost:4567/partitions").body(body2).asString();
 //		
+//		String body3 = obj3.toJSONString();
+//		System.out.println(obj3.toJSONString());
+//		Unirest.post("http://localhost:4567/partitions").body(body3).asString();
+////		
 //		String[] string = new String[] {
 //			"AS", "1", "100", "OAS10"	
 //		};

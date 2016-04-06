@@ -1,7 +1,12 @@
 package neu.edu.mr.client;
-import static spark.Spark.*;
+import static spark.Spark.post;
+
+import java.io.BufferedReader;
+import java.io.FileReader;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -9,20 +14,39 @@ import org.json.JSONException;
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 
+import com.amazonaws.auth.BasicAWSCredentials;
 import com.mashape.unirest.http.Unirest;
 import com.mashape.unirest.http.exceptions.UnirestException;
+
+import neu.edu.mr.utility.S3Service;
 
 public class Client {
 	private final static Logger LOG = Logger.getLogger("Client");
 	private final static String SAMPLE_FILE_URL = "/samples";
 	private final static String DISTRIBUTION_URL = "/partitions";
 	private final static String DEFAULT_PORT = "4567";
+	private final static String REGISTER_URL = "/register";
 	private static int request_count = 0;
-	public final static int SLAVE_NUM = 3;
+	public static int SLAVE_NUM;
 	private static ArrayList<Distribution> samples = new ArrayList<>();
 	private static ArrayList<String> slaves = new ArrayList<>();
 	
-	public static void main(String[] args){
+	public static void main(String[] args) throws UnirestException, IOException, InterruptedException{
+		if (args.length != 5) {
+			System.err.println("Usage: Client <input s3 path> <output s3 path> <config file path s3> <aws access key> <aws secret key>");
+			for (int i = 0; i < args.length; i++) {
+				System.err.println(args[i]);
+			}
+			System.err.println(args.length);
+			System.exit(-1);
+		}
+		
+		String configFilePath = args[2];
+		//Download file from S3
+		BasicAWSCredentials awsCred = new BasicAWSCredentials(args[3], args[4]);
+		S3Service awsAgent = new S3Service(awsCred);
+		String configFileName = awsAgent.readOutputFromS3(configFilePath, awsCred);
+		
 		/*
 		 * listen to /samples
 		 */
@@ -40,8 +64,22 @@ public class Client {
 			return res.body().toString();
 		});
 	}
-	
-	
+
+	private static String[] readConfigFileForInformation(String configFileName) throws IOException {
+		List<String> ipList = new ArrayList<String>();
+		FileReader fr = new FileReader(configFileName);
+		BufferedReader br = new BufferedReader(fr);
+		String line = null;
+		while ((line = br.readLine()) != null) {
+			String[] column = line.split(",");
+			if (column[3].equals("S")) {
+				ipList.add(column[2]);
+			}
+		}
+		SLAVE_NUM = ipList.size();
+		return (String[]) ipList.toArray();
+	}
+
 	/**
 	 * post result to each slave
 	 * @param samples

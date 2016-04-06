@@ -108,15 +108,11 @@ public class AfterPartitionProgram {
 
 	private static void sortYourOwnData() {
 		Collections.sort(unsortedData, new Comparator<String[]>() {
-
 			@Override
 			public int compare(String[] o1, String[] o2) {
 				return (o1[8].compareTo(o2[8]));
 			}
-			
 		});
-		
-		
 	}
 
 	public static File[] listDirectory(String directoryPath) {
@@ -124,5 +120,4 @@ public class AfterPartitionProgram {
 		File[] files = directory.listFiles();
 		return files;
 	}
-
 }

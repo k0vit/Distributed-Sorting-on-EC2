@@ -12,11 +12,9 @@ public class ClientNodeCommWrapper {
 		config = Configuration.getConfiguration();
 	}
 	
-	public void SendData( String data ) throws UnirestException {
+	public void SendData(String clientIp, String data) throws UnirestException {
 		log.info(String.format("Sending data: %s", data));
-		boolean sendToClient = Boolean.parseBoolean(config.getProperty("client.send"));
-		if( sendToClient )
-			Unirest.post(config.getProperty("client.url")).body(data).asString();
+		Unirest.post("http://" + clientIp + ":" + "4567").body(data).asString();
 	}
 	
 	private final Configuration config;

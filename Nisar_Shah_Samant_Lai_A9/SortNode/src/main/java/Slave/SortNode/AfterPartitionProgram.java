@@ -15,7 +15,6 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.zip.GZIPInputStream;
 
@@ -65,7 +64,7 @@ public class AfterPartitionProgram {
 			response.status(200);
 			response.body("SUCCESS");
 			JSONObject entireJSON = (JSONObject) parser.parse(request.body().toString());
-			System.out.println("THis is: " + entireJSON.get("partitions"));
+			System.out.println("This is: " + entireJSON.get("partitions"));
 			JSONArray array = (JSONArray) entireJSON.get("partitions");
 			for (int i = 0; i < array.size(); i++) {
 				JSONObject jsonObject = (JSONObject) array.get(i);

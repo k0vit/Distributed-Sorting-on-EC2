@@ -6,8 +6,8 @@ import java.util.Arrays;
 //TODO use json simple
 public class Distribution {
 	public Distribution() {
-		minTemp = Integer.MAX_VALUE;
-		maxTemp = Integer.MIN_VALUE;
+		minTemp = Double.MAX_VALUE;
+		maxTemp = Double.MIN_VALUE;
 	}
 	
 	@Override
@@ -16,7 +16,7 @@ public class Distribution {
 				+ ", samples=" + samples + "]";
 	}
 
-	public Distribution(int minTemp, int maxTemp) {
+	public Distribution(double minTemp, double maxTemp) {
 		super();
 		this.minTemp = minTemp;
 		this.maxTemp = maxTemp;
@@ -26,26 +26,26 @@ public class Distribution {
 		return String.format("{\"min\":\"%d\", \"max\" : \"%d\" , \"samples\" : [%s] }", minTemp, maxTemp, Arrays.toString(samples.toArray()));
 	}
 	
-	public int getMinTemp() {
+	public double getMinTemp() {
 		return minTemp;
 	}
-	public void setMinTemp(int minTemp) {
+	public void setMinTemp(double minTemp) {
 		this.minTemp = minTemp;
 	}
-	public int getMaxTemp() {
+	public double getMaxTemp() {
 		return maxTemp;
 	}
-	public void setMaxTemp(int maxTemp) {
+	public void setMaxTemp(double maxTemp) {
 		this.maxTemp = maxTemp;
 	}
-	public ArrayList<Integer> getSamples() {
+	public ArrayList<Double> getSamples() {
 		return samples;
 	}
-	public void setSamples(ArrayList<Integer> samples) {
+	public void setSamples(ArrayList<Double> samples) {
 		this.samples = samples;
 	}
 
-	private int minTemp;
-	private int maxTemp;
-	private ArrayList<Integer> samples = new ArrayList<Integer>();
+	private double minTemp;
+	private double maxTemp;
+	private ArrayList<Double> samples = new ArrayList<Double>();
 }

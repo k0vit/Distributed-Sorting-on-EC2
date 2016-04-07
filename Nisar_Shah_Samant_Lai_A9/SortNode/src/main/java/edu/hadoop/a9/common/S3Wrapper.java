@@ -1,11 +1,14 @@
 package edu.hadoop.a9.common;
 
+import java.io.File;
+import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.logging.Logger;
 
 import com.amazonaws.AmazonServiceException;
+import com.amazonaws.auth.BasicAWSCredentials;
 import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.model.GetObjectRequest;
 import com.amazonaws.services.s3.model.ListObjectsRequest;
@@ -13,6 +16,7 @@ import com.amazonaws.services.s3.model.ObjectListing;
 import com.amazonaws.services.s3.model.ObjectMetadata;
 import com.amazonaws.services.s3.model.S3Object;
 import com.amazonaws.services.s3.model.S3ObjectSummary;
+import com.amazonaws.services.s3.transfer.TransferManager;
 
 public class S3Wrapper {
 	public S3Wrapper( AmazonS3 s3client ) {
@@ -51,6 +55,16 @@ public class S3Wrapper {
 		log.info(String.format("Content Length: %d", md.getContentLength()));
 		
 		return object.getObjectContent();
+	}
+	
+	public String readOutputFromS3(String outputPath, BasicAWSCredentials cred) throws IOException, InterruptedException {
+		TransferManager tx = new TransferManager(cred);
+		String simplifiedPath = (outputPath.replace("s3://", ""));
+		int index = simplifiedPath.indexOf("/");
+		String bucketName = simplifiedPath.substring(0, index);
+		String key = simplifiedPath.substring(index + 1);
+		tx.downloadDirectory(bucketName, key, new File(System.getProperty("user.dir")));
+		return key;
 	}
 	
 	private static final Logger log = Logger.getLogger(S3Wrapper.class.getName());

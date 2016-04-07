@@ -10,25 +10,23 @@ import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
 
-
-
-
 public class Distribution {
 	public static final String delimiter = ",";
 	private final static Logger LOG = Logger.getLogger("Distribution");
 	private static JSONParser parser = new JSONParser();
-	private long max;
-	private long min;
+//	private long max;
+//	private long min;
 	private ArrayList<Long> samples;
 	
+	@SuppressWarnings("unchecked")
 	public Distribution(File file){
 		if (!file.getName().endsWith(".dis.json")){
 			LOG.log(Level.INFO, "File not for distribution. file name: "+file.getName());
 		}
 		try{
 			JSONObject obj = (JSONObject) parser.parse(new FileReader(file));
-			max = (Long) obj.get("max");
-			min = (Long) obj.get("min");
+//			max = (Long) obj.get("max");
+//			min = (Long) obj.get("min");
 			JSONArray arr = (JSONArray) obj.get("samples");
 			samples = new ArrayList<>(arr);
 		} catch (Exception e){
@@ -39,8 +37,8 @@ public class Distribution {
 	public Distribution(String str){
 		try{
 			JSONObject obj = (JSONObject) parser.parse(str);
-			max = (Long) obj.get("max");
-			min = (Long) obj.get("min");
+//			max = (Long) obj.get("max");
+//			min = (Long) obj.get("min");
 			JSONArray arr = (JSONArray) obj.get("samples");
 			samples = new ArrayList<>();
 			for(Object num:arr.toArray()){
@@ -51,21 +49,6 @@ public class Distribution {
 		}
 	}
 
-	public long getMax() {
-		return max;
-	}
-
-	public void setMax(int max) {
-		this.max = max;
-	}
-
-	public long getMin() {
-		return min;
-	}
-
-	public void setMin(int min) {
-		this.min = min;
-	}
 
 	public ArrayList<Long> getSamples() {
 		return samples;

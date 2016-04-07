@@ -1,6 +1,5 @@
 package neu.edu.mr.utility;
 
-import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
@@ -15,7 +14,6 @@ import com.amazonaws.services.s3.model.ListObjectsRequest;
 import com.amazonaws.services.s3.model.ObjectListing;
 import com.amazonaws.services.s3.model.S3Object;
 import com.amazonaws.services.s3.model.S3ObjectSummary;
-import com.amazonaws.services.s3.transfer.TransferManager;
 
 public class S3Service {
 	AmazonS3 s3client;
@@ -24,7 +22,28 @@ public class S3Service {
 		super();
 		this.s3client = new AmazonS3Client(cred);
 	}
-
+	
+	/**
+	 * get list of files in the folder
+	 * @param dirURL
+	 * @return
+	 */
+	public List<String> getListOfObjects(String dirURL){
+		String simplifiedPath = null;
+		if (dirURL.startsWith("s3://")) simplifiedPath = dirURL.replace("s3://", "");
+		int index = simplifiedPath.indexOf("/");
+		String bucketName = simplifiedPath.substring(0, index);
+		String key = simplifiedPath.substring(index + 1);
+		return getListOfObjects(bucketName,key);
+	}
+	
+	/**
+	 * get list of files in the folder
+	 * @param bucketName
+	 * @param prefix
+	 * @return
+	 * @throws AmazonServiceException
+	 */
 	public List<String> getListOfObjects(String bucketName, String prefix) throws AmazonServiceException {
 		ListObjectsRequest request = new ListObjectsRequest();
 		request.withBucketName(bucketName);
@@ -40,20 +59,41 @@ public class S3Service {
 
 		return files;
 	}
-
-	public InputStream getObjectInputStream(String bucketName, String objectId) {
+	
+	/**
+	 * s3 read wrapper, read file from a s3 by bucketname and key
+	 * @param configUrl
+	 * @return the stream of the config file
+	 * @throws IOException
+	 */
+	public InputStream getObjectInputStream(String bucketName, String objectId) throws IOException {
 		GetObjectRequest request = new GetObjectRequest(bucketName, objectId);
 		S3Object object = s3client.getObject(request);
 		return object.getObjectContent();
 	}
 	
-	public String readOutputFromS3(String outputPath, BasicAWSCredentials cred) throws IOException, InterruptedException {
-		TransferManager tx = new TransferManager(cred);
-		String simplifiedPath = (outputPath.replace("s3://", ""));
+	/**
+	 * read file from a s3 URL, i.e. s3://[bucket name]/[path]
+	 * @param configUrl
+	 * @return the stream of the config file
+	 * @throws IOException
+	 */
+	public InputStream getObjectInputStream(String configUrl) throws IOException{
+		String simplifiedPath = null;
+		if (configUrl.startsWith("s3://")) simplifiedPath = configUrl.replace("s3://", "");
 		int index = simplifiedPath.indexOf("/");
 		String bucketName = simplifiedPath.substring(0, index);
 		String key = simplifiedPath.substring(index + 1);
-		tx.downloadDirectory(bucketName, key, new File(System.getProperty("user.dir")));
-		return key;
+		return getObjectInputStream(bucketName,key);
 	}
+	
+//	public String readOutputFromS3(String outputPath, BasicAWSCredentials cred) throws IOException, InterruptedException {
+//		TransferManager tx = new TransferManager(cred);
+//		String simplifiedPath = (outputPath.replace("s3://", ""));
+//		int index = simplifiedPath.indexOf("/");
+//		String bucketName = simplifiedPath.substring(0, index);
+//		String key = simplifiedPath.substring(index + 1);
+//		tx.downloadDirectory(bucketName, key, new File(System.getProperty("user.dir")));
+//		return key;
+//	}
 }

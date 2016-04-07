@@ -1,6 +1,6 @@
 #!/bin/bash
 
-chmod 400 InstanceDetails.csv
+chmod 400 ec2key.pem
 
 # II - instance identifier
 # PRIP - private ip
@@ -11,8 +11,8 @@ while IFS="," read II PRIP PUIP NT
 do
 	if [ "$NT" == "C" ]
 	then
-		echo "C for ip $PUIP"
+		scp -i ec2key.pem -o StrictHostKeyChecking=no client-0.0.1-SNAPSHOT-jar-with-dependencies.jar ec2-user@$PUIP:~/
 	else 
-		echo "S for ip $PUIP"
+		scp -i ec2key.pem -o StrictHostKeyChecking=no SortNode-0.0.1-SNAPSHOT-jar-with-dependencies.jar ec2-user@$PUIP:~/
 	fi
 done < InstanceDetails.csv

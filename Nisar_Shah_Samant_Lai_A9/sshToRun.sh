@@ -32,9 +32,9 @@ do
         if [ "$NT" == "C" ]
         then
                 clientip=$PUIP
-        else 
-                ssh -i ec2key.pem -o StrictHostKeyChecking=no ec2-user@$PUIP "java -jar ~/SortNode-0.0.1-SNAPSHOT-jar-with-dependencies.jar $1 $2 $clusterdetails $accesskey $secretkey 2>&1" > sortnode-$PUIP-output.txt &
+        else
+                ssh -i ec2key.pem -o "UserKnownHostsFile=/dev/null" -o "StrictHostKeyChecking=no" ec2-user@$PUIP "java -jar ~/SortNode-0.0.1-SNAPSHOT-jar-with-dependencies.jar $1 $2 $clusterdetails $accesskey $secretkey 2>&1" > sortnode-$PUIP-output.txt &
         fi
 done < InstanceDetails.csv
 
-ssh -i ec2key.pem -o StrictHostKeyChecking=no ec2-user@$clientip "java -jar ~/client-0.0.1-SNAPSHOT-jar-with-dependencies.jar $1 $2 $clusterdetails $accesskey $secretkey test.Main 2>&1" > client-output.txt
+ssh -i ec2key.pem -o "UserKnownHostsFile=/dev/null" -o "StrictHostKeyChecking=no" ec2-user@$clientip "java -jar ~/client-0.0.1-SNAPSHOT-jar-with-dependencies.jar $1 $2 $clusterdetails $accesskey $secretkey 2>&1" > client-output.txt

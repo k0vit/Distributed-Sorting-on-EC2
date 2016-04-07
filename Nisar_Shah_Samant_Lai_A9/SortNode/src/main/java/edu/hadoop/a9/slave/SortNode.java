@@ -50,9 +50,11 @@ public class SortNode {
 	static long INSTANCE_ID;
 	static ArrayList<String[]> unsortedData = new ArrayList<String[]>();
 	public static final String PORT_FOR_SORT_NODE_COMM = "1234";
+	public static final String PORT_FOR_CLIENT_COMM = "4567";
 	public static final int NUMBER_OF_REQUESTS_STORED = 20000;
 	public static final String PARTITION_URL = "partitions";
 	public static final String END_URL = "end";
+	public static final String END_OF_SORTING_URL = "signals";
 	static int NO_OF_SORT_NODES_WHERE_DATA_IS_RECEIVED = 0;
 	
 	public static void main(String[] args) {
@@ -121,6 +123,7 @@ public class SortNode {
 			if (NO_OF_SORT_NODES_WHERE_DATA_IS_RECEIVED == TOTAL_NO_OF_SORT_NODES) {
 				sortYourOwnData();
 				uploadDataToS3(outputS3Path, wrapper);
+				ClientNodeCommWrapper.SendData(clientIp, PORT_FOR_CLIENT_COMM, END_OF_SORTING_URL, "SORTED");
 			}
 			return response.body().toString();
 		});

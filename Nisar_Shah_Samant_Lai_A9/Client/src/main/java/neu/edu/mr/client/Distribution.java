@@ -10,12 +10,15 @@ import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
 
+/**
+ * 
+ * @author yuanjianlai
+ *
+ */
 public class Distribution {
 	public static final String delimiter = ",";
 	private final static Logger LOG = Logger.getLogger("Distribution");
 	private static JSONParser parser = new JSONParser();
-//	private long max;
-//	private long min;
 	private ArrayList<Long> samples;
 	
 	@SuppressWarnings("unchecked")
@@ -25,8 +28,6 @@ public class Distribution {
 		}
 		try{
 			JSONObject obj = (JSONObject) parser.parse(new FileReader(file));
-//			max = (Long) obj.get("max");
-//			min = (Long) obj.get("min");
 			JSONArray arr = (JSONArray) obj.get("samples");
 			samples = new ArrayList<>(arr);
 		} catch (Exception e){
@@ -37,8 +38,6 @@ public class Distribution {
 	public Distribution(String str){
 		try{
 			JSONObject obj = (JSONObject) parser.parse(str);
-//			max = (Long) obj.get("max");
-//			min = (Long) obj.get("min");
 			JSONArray arr = (JSONArray) obj.get("samples");
 			samples = new ArrayList<>();
 			for(Object num:arr.toArray()){

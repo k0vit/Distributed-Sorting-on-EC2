@@ -6,6 +6,11 @@ import org.json.simple.JSONObject;
 import com.mashape.unirest.http.Unirest;
 import com.mashape.unirest.http.exceptions.UnirestException;
 
+/**
+ * 
+ * @author yuanjianlai
+ *
+ */
 public class MessageSender {
 	@SuppressWarnings("unchecked")
 	public static void main(String[] args) throws UnirestException{

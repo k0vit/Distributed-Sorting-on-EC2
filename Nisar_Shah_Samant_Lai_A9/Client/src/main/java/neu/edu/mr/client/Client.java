@@ -42,8 +42,8 @@ public class Client {
 	protected static ArrayList<Distribution> samples;
 	protected static ArrayList<String> slaves;
 	private static S3Service s3;
-	
-	
+
+	//TODO Remove throws and catch all exceptions.
 	public static void main(String[] args) throws UnirestException, IOException, InterruptedException {
 		if (args.length != 5) {
 			System.err.println(
@@ -55,22 +55,20 @@ public class Client {
 			System.exit(-1);
 		}
 		startTime = System.currentTimeMillis();
-		
-		
+
 		/*
 		 * initialize aws cred and S3 component
 		 */
-		BasicAWSCredentials awsCred = new BasicAWSCredentials(args[3],args[4]);
+		BasicAWSCredentials awsCred = new BasicAWSCredentials(args[3], args[4]);
 		s3 = new S3Service(awsCred);
-		
+
 		// read config files
 		LOG.log(Level.FINE, "reading configuration");
 		readConfigInfo(args[2]);
-		
+
 		// send file names to each sort node. /files post request
 		LOG.log(Level.FINE, "distributing jobs");
 		distributeJob(args[0]);
-
 
 		/*
 		 * listen to /samples to get samples
@@ -81,67 +79,68 @@ public class Client {
 			request_count++;
 			LOG.log(Level.FINE, req.body().toString());
 			samples.add(new Distribution(req.body().toString()));
-			// TODO delete
-			slaves.add(req.ip());
 			if (request_count == FILE_NUM) {
 				postResult(samples);
 			}
 
 			return res.body().toString();
 		});
-		
+
 		// get signal from sort node that its done and to and calculate timing.
-		post(SIGNAL_URL, (req,res) -> {
+		post(SIGNAL_URL, (req, res) -> {
 			res.status(200);
 			res.body("SUCCESS SIGNAL RECEIVED");
 			signal_count++;
-			LOG.log(Level.FINE, "Sort work done signal from: "+req.ip());
+			LOG.log(Level.FINE, "Sort work done signal from: " + req.ip());
 			if (signal_count == SLAVE_NUM) {
-				long totalTime = System.currentTimeMillis()-startTime;
+				long totalTime = System.currentTimeMillis() - startTime;
 				System.out.println("Sort Job Done");
-				System.out.println("Total Time: " + totalTime/1000+" Seconds");
+				System.out.println("Total Time: " + totalTime / 1000 + " Seconds");
+				//TODO terminate program.
 			}
-			
+
 			return res.body().toString();
 		});
 
 	}
-	
+
 	/**
 	 * read the input folder and distribute the job to sort nodes
+	 * 
 	 * @param inputS3Path
 	 */
-	protected static void distributeJob(String inputS3Path){
+	protected static void distributeJob(String inputS3Path) {
 		List<String> files = s3.getListOfObjects(inputS3Path);
 		FILE_NUM = files.size();
 		List<String> shares = divideJobs(files);
-		for(int i = 0;i<SLAVE_NUM;i++){
+		for (int i = 0; i < SLAVE_NUM; i++) {
 			String slaveIp = slaves.get(i);
 			String filesShare = shares.get(i);
-			try{
+			try {
 				Unirest.post("http://" + slaveIp + ":" + DEFAULT_PORT + FILES_URL).body(filesShare).asString();
-			} catch (Exception e){
-				LOG.log(Level.SEVERE,"Failed to distribute files to slave: "+e.getMessage());
+			} catch (Exception e) {
+				LOG.log(Level.SEVERE, "Failed to distribute files to slave: " + e.getMessage());
 			}
 		}
 	}
-	
+
 	/**
 	 * divide the work by sort nodes
+	 * 
 	 * @param files
 	 * @return
 	 */
 	protected static List<String> divideJobs(List<String> files) {
-		List<String> shares = new ArrayList<>();
-		int share = FILE_NUM/SLAVE_NUM;
-		int mod = FILE_NUM%SLAVE_NUM;
-		for(int j=0,i=0;j<SLAVE_NUM;j++){
+		List<String> shares = new ArrayList<String>();
+		int share = FILE_NUM / SLAVE_NUM;
+		int mod = FILE_NUM % SLAVE_NUM;
+		for (int j = 0, i = 0; j < SLAVE_NUM; j++) {
 			StringBuilder sb = new StringBuilder();
 			for (int k = i; i - k < share && i < FILE_NUM; i++) {
 				sb.append(DELIMITER_OF_FILE);
 				sb.append(files.get(i));
 			}
-			if (j<mod){
+			if (j < mod) {
 				sb.append(DELIMITER_OF_FILE);
 				sb.append(files.get(i++));
 			}
@@ -150,20 +149,19 @@ public class Client {
 		}
 		return shares;
 	}
-	
-	
+
 	/**
-	 * read config file 
+	 * read config file
+	 * 
 	 * @param configFilePath
 	 * @param accessKey
 	 * @param secretKey
 	 * @throws IOException
 	 */
-	protected static void readConfigInfo(String configFilePath) throws IOException{
+	protected static void readConfigInfo(String configFilePath) throws IOException {
 		readConfigInfo(s3.getObjectInputStream(configFilePath));
 	}
-	
-	
+
 	/**
 	 * read config file and get slaves addr
 	 * 
@@ -171,7 +169,7 @@ public class Client {
 	 * @throws IOException
 	 */
 	protected static void readConfigInfo(InputStream input) throws IOException {
-		slaves = new ArrayList<>();
+		slaves = new ArrayList<String>();
 		try (InputStream fileInputStream = input) {
 			BufferedReader reader = new BufferedReader(new InputStreamReader(fileInputStream));
 			String line = null;
@@ -225,6 +223,7 @@ public class Client {
 	 * @return
 	 */
 	@SuppressWarnings("unchecked")
+	//TODO check all cases and make samples from long to double.
 	public static JSONObject partition(ArrayList<Long> samples, ArrayList<String> slaves) {
 		Collections.sort(samples);
 		int length = samples.size();
@@ -247,7 +246,6 @@ public class Client {
 				else
 					job.put("max", end);
 				job.put("nodeIp", slaves.get(node));
-				// AS discussed, should keep this for final output sequence
 				job.put("instanceId", node);
 				arr.add(job);
 				i += range;
@@ -256,7 +254,7 @@ public class Client {
 			}
 		} catch (JSONException e) {
 			LOG.log(Level.SEVERE, e.getMessage());
-			LOG.log(Level.SEVERE, "failed to genearte global distribution");
+			LOG.log(Level.SEVERE, "failed to generate global distribution");
 		}
 		obj.put("partitions", arr);
 		return obj;

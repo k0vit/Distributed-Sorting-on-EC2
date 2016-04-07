@@ -1,69 +1,69 @@
-Apr 06, 2016 4:00:40 PM neu.edu.mr.manager.Main main
+Apr 06, 2016 10:51:29 PM neu.edu.mr.manager.Main main
 FINE: Action to be performed create
-Apr 06, 2016 4:00:43 PM neu.edu.mr.manager.ClusterCreator createKey
+Apr 06, 2016 10:51:32 PM neu.edu.mr.manager.ClusterCreator createKey
 INFO: The key was created name = a9key
-Its fingerprint is=d1:09:c6:0b:90:e7:ec:f1:41:30:c1:53:f3:33:2d:a4:0c:df:b7:5e
+Its fingerprint is=82:8a:b7:f6:b4:87:31:7d:c9:ee:14:75:94:4a:04:d8:00:1e:37:ec
 Its material is= 
 -----BEGIN RSA PRIVATE KEY-----
-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
+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
 -----END RSA PRIVATE KEY-----
-Apr 06, 2016 4:00:43 PM neu.edu.mr.manager.ClusterCreator createSecurityGroup
+Apr 06, 2016 10:51:33 PM neu.edu.mr.manager.ClusterCreator createSecurityGroup
 FINE: Created security grp with name a9SecurityGrp
-Apr 06, 2016 4:00:43 PM neu.edu.mr.manager.ClusterCreator createSecurityGroup
+Apr 06, 2016 10:51:33 PM neu.edu.mr.manager.ClusterCreator createSecurityGroup
 FINE: Setting ingress rule allowing any ip address for all tcp flow
-Apr 06, 2016 4:00:43 PM neu.edu.mr.manager.ClusterCreator createCluster
+Apr 06, 2016 10:51:33 PM neu.edu.mr.manager.ClusterCreator createCluster
 FINE: Creating instance with parameters ami-fe057694, t2.micro, 1, a9key
-Apr 06, 2016 4:00:44 PM neu.edu.mr.manager.ClusterCreator writeInstanceDetails
-FINE: Fetching instances for reservation id r-aaedec01
-Apr 06, 2016 4:00:44 PM neu.edu.mr.manager.ClusterCreator writeInstanceDetails
+Apr 06, 2016 10:51:35 PM neu.edu.mr.manager.ClusterCreator writeInstanceDetails
+FINE: Fetching instances for reservation id r-7a7370d1
+Apr 06, 2016 10:51:36 PM neu.edu.mr.manager.ClusterCreator writeInstanceDetails
 FINE: Waiting for instance with id ami-fe057694
-Apr 06, 2016 4:00:44 PM neu.edu.mr.manager.ClusterCreator writeInstanceDetails
+Apr 06, 2016 10:51:36 PM neu.edu.mr.manager.ClusterCreator writeInstanceDetails
 FINE: Current State pending
-Apr 06, 2016 4:00:54 PM neu.edu.mr.manager.ClusterCreator writeInstanceDetails
+Apr 06, 2016 10:51:46 PM neu.edu.mr.manager.ClusterCreator writeInstanceDetails
 FINE: Sleeping for 10 seconds. State not changed
-Apr 06, 2016 4:00:55 PM neu.edu.mr.manager.ClusterCreator writeInstanceDetails
+Apr 06, 2016 10:51:47 PM neu.edu.mr.manager.ClusterCreator writeInstanceDetails
 FINE: State changed to pending
-Apr 06, 2016 4:01:05 PM neu.edu.mr.manager.ClusterCreator writeInstanceDetails
+Apr 06, 2016 10:51:57 PM neu.edu.mr.manager.ClusterCreator writeInstanceDetails
 FINE: Sleeping for 10 seconds. State not changed
-Apr 06, 2016 4:01:05 PM neu.edu.mr.manager.ClusterCreator writeInstanceDetails
+Apr 06, 2016 10:51:57 PM neu.edu.mr.manager.ClusterCreator writeInstanceDetails
 FINE: State changed to pending
-Apr 06, 2016 4:01:15 PM neu.edu.mr.manager.ClusterCreator writeInstanceDetails
+Apr 06, 2016 10:52:07 PM neu.edu.mr.manager.ClusterCreator writeInstanceDetails
 FINE: Sleeping for 10 seconds. State not changed
-Apr 06, 2016 4:01:15 PM neu.edu.mr.manager.ClusterCreator writeInstanceDetails
+Apr 06, 2016 10:52:07 PM neu.edu.mr.manager.ClusterCreator writeInstanceDetails
 FINE: State changed to running
-Apr 06, 2016 4:01:15 PM neu.edu.mr.manager.ClusterCreator writeInstanceDetails
-FINE: Instance details: i-d7a1454a,172.31.60.164,54.173.153.219,C
+Apr 06, 2016 10:52:07 PM neu.edu.mr.manager.ClusterCreator writeInstanceDetails
+FINE: Instance details: i-69be58f4,172.31.52.88,54.84.148.18,C
 
-Apr 06, 2016 4:01:15 PM neu.edu.mr.manager.ClusterCreator writeInstanceDetails
+Apr 06, 2016 10:52:07 PM neu.edu.mr.manager.ClusterCreator writeInstanceDetails
 FINE: Waiting for instance with id ami-fe057694
-Apr 06, 2016 4:01:15 PM neu.edu.mr.manager.ClusterCreator writeInstanceDetails
+Apr 06, 2016 10:52:07 PM neu.edu.mr.manager.ClusterCreator writeInstanceDetails
 FINE: Current State pending
-Apr 06, 2016 4:01:25 PM neu.edu.mr.manager.ClusterCreator writeInstanceDetails
+Apr 06, 2016 10:52:17 PM neu.edu.mr.manager.ClusterCreator writeInstanceDetails
 FINE: Sleeping for 10 seconds. State not changed
-Apr 06, 2016 4:01:25 PM neu.edu.mr.manager.ClusterCreator writeInstanceDetails
+Apr 06, 2016 10:52:18 PM neu.edu.mr.manager.ClusterCreator writeInstanceDetails
 FINE: State changed to running
-Apr 06, 2016 4:01:25 PM neu.edu.mr.manager.ClusterCreator writeInstanceDetails
-FINE: Instance details: i-d6a1454b,172.31.60.163,52.201.217.49,S
+Apr 06, 2016 10:52:18 PM neu.edu.mr.manager.ClusterCreator writeInstanceDetails
+FINE: Instance details: i-66be58fb,172.31.52.89,52.23.240.198,S
 
-Apr 06, 2016 4:01:25 PM neu.edu.mr.manager.Main main
+Apr 06, 2016 10:52:18 PM neu.edu.mr.manager.Main main
 FINE: Cluster created successfully: true

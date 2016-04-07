@@ -15,6 +15,7 @@ public class Main {
 	public static final String CLUSTER_MANAGER_LOGGER = "ClusterManager";
 	private final static Logger LOGGER = Logger.getLogger(CLUSTER_MANAGER_LOGGER);
 	public static final String CLUSTER_DETAILS_FILE_NAME = "InstanceDetails.csv";
+	public static final String EC2_KEY_FILE_NAME = "ec2key.pem";
 	public static final String CLIENT_JAR = "client-0.0.1-SNAPSHOT-jar-with-dependencies.jar";
 	public static final String SORT_NODE_JAR = "SortNode-0.0.1-SNAPSHOT-jar-with-dependencies.jar";
 

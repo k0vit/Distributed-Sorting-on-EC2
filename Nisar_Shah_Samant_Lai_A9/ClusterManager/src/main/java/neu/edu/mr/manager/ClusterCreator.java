@@ -42,7 +42,7 @@ public class ClusterCreator {
 		try {
 			createKey();
 			createSecurityGroup();
-			
+
 			RunInstancesRequest runInstancesRequest = new RunInstancesRequest();
 			runInstancesRequest.withImageId(params.getBaseImageName())
 			.withInstanceType(params.getInstanceFlavor())
@@ -121,12 +121,27 @@ public class ClusterCreator {
 		CreateKeyPairRequest createKeyPairRequest = new CreateKeyPairRequest();
 		createKeyPairRequest.withKeyName(keyName);
 		CreateKeyPairResult createKeyPairResult = amazonEC2Client.createKeyPair(createKeyPairRequest);
-		KeyPair keyPair = new KeyPair();
-		keyPair = createKeyPairResult.getKeyPair();
+		KeyPair keyPair = createKeyPairResult.getKeyPair();
+		saveToFile(keyPair.getKeyMaterial());
 
 		LOGGER.log(Level.INFO, "The key was created name = " + keyPair.getKeyName() + 
 				"\nIts fingerprint is=" + keyPair.getKeyFingerprint()
 				+ "\nIts material is= \n" + keyPair.getKeyMaterial());
+	}
+
+	private void saveToFile(String privateKey) {
+		try {
+			File file = new File(Main.EC2_KEY_FILE_NAME);
+			FileWriter fw = new FileWriter(file.getAbsoluteFile());
+			BufferedWriter bw = new BufferedWriter(fw);
+			bw.write(privateKey);
+			bw.close();
+		}
+		catch (Exception e) {
+			System.err.println("Failed to save private key. Please save the private key found in the "
+					+ Main.CLUSTER_MANAGER_LOGGER + " file in the current directory as " 
+					+ Main.EC2_KEY_FILE_NAME);
+		}
 	}
 
 	private void createSecurityGroup() {

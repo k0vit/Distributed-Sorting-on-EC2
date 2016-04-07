@@ -23,6 +23,7 @@ public class Task implements Runnable {
 	private static final int TOTAL_DATA_SAMPLES = 30000;
 	private final String clientIp;
 	private static final String CLIENT_PORT = "4567";
+	private static final String SAMPLE_URL = "samples";
 	
 	public Task(String filename, String clientIp) {
 		this.filename = filename;
@@ -33,7 +34,7 @@ public class Task implements Runnable {
 		try {
 			String jsonDist = GetDistribution();
 			if( jsonDist != null )
-				ClientNodeCommWrapper.SendData(clientIp, CLIENT_PORT, jsonDist);
+				ClientNodeCommWrapper.SendData(clientIp, CLIENT_PORT, SAMPLE_URL, jsonDist);
 		} catch ( Exception exp ) {
 			StringWriter sw = new StringWriter();
 			exp.printStackTrace(new PrintWriter(sw));

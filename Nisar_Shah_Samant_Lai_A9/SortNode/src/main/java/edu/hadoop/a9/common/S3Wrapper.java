@@ -14,6 +14,7 @@ import com.amazonaws.services.s3.model.GetObjectRequest;
 import com.amazonaws.services.s3.model.ListObjectsRequest;
 import com.amazonaws.services.s3.model.ObjectListing;
 import com.amazonaws.services.s3.model.ObjectMetadata;
+import com.amazonaws.services.s3.model.PutObjectRequest;
 import com.amazonaws.services.s3.model.S3Object;
 import com.amazonaws.services.s3.model.S3ObjectSummary;
 import com.amazonaws.services.s3.transfer.TransferManager;
@@ -65,6 +66,30 @@ public class S3Wrapper {
 		String key = simplifiedPath.substring(index + 1);
 		tx.downloadDirectory(bucketName, key, new File(System.getProperty("user.dir")));
 		return key;
+	}
+	
+	/**
+	 * 
+	 * @param file File to be uploaded.
+	 * @param s3OutputPath Path to be uploaded to.
+	 * @return true if uploaded successfully.
+	 */
+	public boolean uploadFile(String file, String s3OutputPath) {
+		File local = new File(file);
+		if (!(local.exists() && local.canRead() && local.isFile())) {
+			return false;
+		}
+		String folder = removeS3(s3OutputPath);
+		String bucket = folder;
+		String remote = local.getName();
+		s3client.putObject(new PutObjectRequest(bucket, remote, local));
+		return true;
+	}
+
+	private static String removeS3(String path) {
+		if (!path.startsWith("s3://"))
+			return path;
+		return path.substring("s3://".length());
 	}
 	
 	private static final Logger log = Logger.getLogger(S3Wrapper.class.getName());

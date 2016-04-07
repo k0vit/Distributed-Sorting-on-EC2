@@ -38,8 +38,8 @@ public class Request {
 //		System.out.println(mainObject.toJSONString());
 		String body1 = mainObject.toJSONString();
 		System.out.println(mainObject.toJSONString());
-//		Unirest.setTimeouts(10000, 0);
-//		Unirest.post("http://localhost:4567/partitions").body(body1).asString();
+		Unirest.setTimeouts(10000, 0);
+		Unirest.post("http://localhost:4567/partitions").body(body1).asString();
 //		
 //		String body2 = obj2.toJSONString();
 //		System.out.println(obj2.toJSONString());

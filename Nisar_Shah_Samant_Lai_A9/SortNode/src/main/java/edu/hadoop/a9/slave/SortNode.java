@@ -6,7 +6,6 @@ import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileReader;
-import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -31,7 +30,6 @@ import com.amazonaws.auth.BasicAWSCredentials;
 import com.amazonaws.services.s3.AmazonS3Client;
 import com.mashape.unirest.http.exceptions.UnirestException;
 import com.opencsv.CSVReader;
-import com.opencsv.CSVWriter;
 
 import edu.hadoop.a9.common.ClientNodeCommWrapper;
 import edu.hadoop.a9.common.S3Wrapper;
@@ -122,25 +120,13 @@ public class SortNode {
 			NO_OF_SORT_NODES_WHERE_DATA_IS_RECEIVED++;
 			if (NO_OF_SORT_NODES_WHERE_DATA_IS_RECEIVED == TOTAL_NO_OF_SORT_NODES) {
 				sortYourOwnData();
-				uploadDataToS3(outputS3Path, wrapper);
-				ClientNodeCommWrapper.SendData(clientIp, PORT_FOR_CLIENT_COMM, END_OF_SORTING_URL, "SORTED");
+				if (wrapper.uploadDataToS3(outputS3Path, unsortedData, INSTANCE_ID)) {
+					ClientNodeCommWrapper.SendData(clientIp, PORT_FOR_CLIENT_COMM, END_OF_SORTING_URL, "SORTED");	
+				}
 			}
 			return response.body().toString();
 		});
 		
-	}
-
-	private static void uploadDataToS3(String outputS3Path, S3Wrapper wrapper) {
-		ArrayList<String[]> nowSortedData = unsortedData;
-		String fileName = "part-r-" + INSTANCE_ID + ".csv";
-		try {
-			CSVWriter writer = new CSVWriter(new FileWriter(fileName));
-			writer.writeAll(nowSortedData);
-			writer.close();
-			wrapper.uploadFile(fileName, outputS3Path);
-		} catch (IOException e) {
-			log.severe(e.getMessage());
-		}
 	}
 
 	public static void readPartitionsFromClient() {

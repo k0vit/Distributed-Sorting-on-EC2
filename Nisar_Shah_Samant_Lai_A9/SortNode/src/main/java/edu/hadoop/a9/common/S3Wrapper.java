@@ -1,6 +1,7 @@
 package edu.hadoop.a9.common;
 
 import java.io.File;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
@@ -18,6 +19,7 @@ import com.amazonaws.services.s3.model.PutObjectRequest;
 import com.amazonaws.services.s3.model.S3Object;
 import com.amazonaws.services.s3.model.S3ObjectSummary;
 import com.amazonaws.services.s3.transfer.TransferManager;
+import com.opencsv.CSVWriter;
 
 public class S3Wrapper {
 	public S3Wrapper( AmazonS3 s3client ) {
@@ -92,6 +94,22 @@ public class S3Wrapper {
 		return path.substring("s3://".length());
 	}
 	
+	public boolean uploadDataToS3(String outputS3Path, ArrayList<String[]> nowSortedData, Long instanceId) {
+		String fileName = "part-r-" + instanceId + ".csv";
+		try {
+			CSVWriter writer = new CSVWriter(new FileWriter(fileName));
+			writer.writeAll(nowSortedData);
+			writer.close();
+			if (uploadFile(fileName, outputS3Path)) {
+				return true;
+			} 
+		} catch (IOException e) {
+			log.severe(e.getMessage());
+		}
+		return false;
+	}
+	
 	private static final Logger log = Logger.getLogger(S3Wrapper.class.getName());
 	private AmazonS3 s3client;
+	
 }

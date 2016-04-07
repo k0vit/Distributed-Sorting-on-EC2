@@ -13,22 +13,18 @@ import java.util.zip.GZIPInputStream;
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 
-import com.mashape.unirest.http.Unirest;
-import com.mashape.unirest.http.exceptions.UnirestException;
-
 import edu.hadoop.a9.common.ClientNodeCommWrapper;
 
 public class Task implements Runnable {
-	private final String id;
 	private final String filename;
 	private static final Logger log = Logger.getLogger(Task.class.getName());
 	private static final int BULBTEMP_INDEX = 8;
 	//Using 10% of 300000 data for sampling
 	private static final int TOTAL_DATA_SAMPLES = 30000;
 	private final String clientIp;
+	private static final String CLIENT_PORT = "4567";
 	
-	public Task(String id, String filename, String clientIp) {
-		this.id = id;
+	public Task(String filename, String clientIp) {
 		this.filename = filename;
 		this.clientIp = clientIp;
 	}
@@ -37,7 +33,7 @@ public class Task implements Runnable {
 		try {
 			String jsonDist = GetDistribution();
 			if( jsonDist != null )
-				SendData(jsonDist);
+				ClientNodeCommWrapper.SendData(clientIp, CLIENT_PORT, jsonDist);
 		} catch ( Exception exp ) {
 			StringWriter sw = new StringWriter();
 			exp.printStackTrace(new PrintWriter(sw));
@@ -69,11 +65,6 @@ public class Task implements Runnable {
 		JSONObject mainObject = new JSONObject();
 		mainObject.put("samples", array);
 		return mainObject.toJSONString();
-	}
-	
-	public void SendData(String data) throws UnirestException {
-		log.info(String.format("Sending data: %s", data));
-		Unirest.post("http://" + clientIp + ":" + "4567").body(data).asString();
 	}
 	
 }

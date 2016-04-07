@@ -13,17 +13,15 @@ import com.amazonaws.auth.BasicAWSCredentials;
 import com.amazonaws.services.s3.AmazonS3Client;
 
 import edu.hadoop.a9.common.S3Wrapper;
-import edu.hadoop.a9.config.Configuration;
 
-public class App {
+public class SortNode {
 	static String accessKey;
 	static String secretKey;
 	static String clientIp;
 	
 	public static void main(String[] args) {
 		if (args.length != 5) {
-			//Class name will change after merging.
-			System.err.println("Usage: App <input s3 path> <output s3 path> <config file path s3> <aws access key> <aws secret key>");
+			System.err.println("Usage: SortNode <input s3 path> <output s3 path> <config file path s3> <aws access key> <aws secret key>");
 			for (int i = 0; i < args.length; i++) {
 				System.err.println(args[i]);
 			}
@@ -33,17 +31,17 @@ public class App {
 		accessKey = args[3];
 		secretKey = args[4];
 		log.info("Application Initialized");
-		Configuration config = Configuration.getConfiguration();
-		sendSampleDistribution(config);
+		sendSampleDistribution();
+		
+		
 		log.info("Application Finished");
 	}
 	
-	public static void sendSampleDistribution(Configuration config) {
+	public static void sendSampleDistribution() {
 		try {
 			BasicAWSCredentials awsCredentials = new BasicAWSCredentials(accessKey, secretKey);
 			AmazonS3Client s3client = new AmazonS3Client(awsCredentials);
 			S3Wrapper wrapper = new S3Wrapper(s3client);
-			
 			//TODO Read data from each file and store in memory in local directory.
 			//TODO Client will send the file names that need to be downloaded from S3 and you need to download those files only.
 			post("/files", (request, response) -> {
@@ -65,10 +63,14 @@ public class App {
 		}
 	}
 	
+	/**
+	 * This method takes the string of filenames, creates separate threads and sends each file sampling to client Node. 
+	 * @param filenames
+	 */
 	private static void randomlySample(String[] filenames) {
 		ThreadPoolExecutor executor = (ThreadPoolExecutor)Executors.newCachedThreadPool();
 		for (String filename : filenames) {
-			Task task = new Task("Task", filename, clientIp);
+			Task task = new Task(filename, clientIp);
 			executor.execute(task);
 		}
 		executor.shutdown();
@@ -86,5 +88,5 @@ public class App {
 		return files;
 	}
 
-	private static final Logger log = Logger.getLogger(App.class.getName());
+	private static final Logger log = Logger.getLogger(SortNode.class.getName());
 }

@@ -67,6 +67,8 @@ public class SortNode {
 			System.exit(-1);
 		}
 
+		log.info(String.format("<input s3 path>: %s <output s3 path>: %s <config file path s3>: %s", args[0], args[1], args[2]));
+		
 		String inputS3Path = args[0];
 		String outputS3Path = args[1];
 		String configFilePath = args[2];
@@ -321,7 +323,7 @@ public class SortNode {
 			//Check if filename is ending with .gz
 			if (checkFileExtensionsIsGz(filename)) {
 				Task task = new Task(filename, clientIp, awsCredentials, inputS3Path);
-				log.info("Start multithreading tasks");
+				log.info("Start task");
 				executor.execute(task);
 			} else {
 				log.info(String.format("Filename: %s does not end with .gz, Thus skipped", filename));

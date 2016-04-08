@@ -65,7 +65,9 @@ public class S3Wrapper {
 		int index = simplifiedPath.indexOf("/");
 		String bucketName = simplifiedPath.substring(0, index);
 		String key = simplifiedPath.substring(index + 1);
-		tx.downloadDirectory(bucketName, key, new File(System.getProperty("user.dir")));
+		tx.download(bucketName, key, new File(key));
+		log.info(String.format("[%s] Downloaded file with Bucket Name: %s Key: %s ", key, bucketName, key));
+		log.info("CURRENT USER DIRECTORY: " + System.getProperty("user.dir"));
 		return key;
 	}
 
@@ -112,6 +114,7 @@ public class S3Wrapper {
 
 	public String downloadAndStoreFileInLocal(String fileString, BasicAWSCredentials awsCredentials, String inputS3Path) {
 		String s3FullPath = Paths.get(inputS3Path, fileString).toString();
+		log.info(String.format("[%s] Downloading from s3 full path: %s", fileString, s3FullPath));
 		readOutputFromS3(s3FullPath, awsCredentials);
 		return fileString;
 	}

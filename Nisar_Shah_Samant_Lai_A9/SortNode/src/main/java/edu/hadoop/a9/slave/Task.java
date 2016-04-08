@@ -58,7 +58,7 @@ public class Task implements Runnable {
 	@SuppressWarnings("unchecked")
 	public String GetDistribution(String fileName) {
 		File file = new File(System.getProperty("user.dir"), fileName);
-		log.info(String.format("[%s] Get ditribution for file: %s", fileName, file.getAbsolutePath()));
+		log.info(String.format("[%s] Get distribution for file: %s", fileName, file.getAbsolutePath()));
 		JSONObject mainObject = new JSONObject();
 		try {
 			InputStream is = new FileInputStream(file);
@@ -68,9 +68,13 @@ public class Task implements Runnable {
 			int totalSamplesToTake = TOTAL_DATA_SAMPLES;
 			Random rnd = new Random();
 			JSONArray array = new JSONArray();
+			in.nextLine();
 			while (in.hasNextLine()) {
 				String line = in.nextLine();
 				String[] parts = line.split("\\,");
+				if ((parts.length < 9) || parts[BULBTEMP_INDEX].equals("-")) {
+					continue;
+				}
 				double temp = Double.parseDouble(parts[BULBTEMP_INDEX]);
 				if (samplesTaken < totalSamplesToTake && rnd.nextBoolean()) {
 					array.add(temp);

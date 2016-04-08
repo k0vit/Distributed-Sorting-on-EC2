@@ -63,7 +63,7 @@ public class Client {
 		s3 = new S3Service(awsCred);
 
 		// read config files
-		LOG.log(Level.FINE, "reading configuration");
+		LOG.log(Level.INFO, "reading configuration");
 		try {
 			readConfigInfo(args[2]);
 		} catch (IOException e) {
@@ -71,7 +71,7 @@ public class Client {
 		}
 
 		// send file names to each sort node. /files post request
-		LOG.log(Level.FINE, "distributing jobs");
+		LOG.log(Level.INFO, "distributing jobs");
 		distributeJob(args[0]);
 
 		/*
@@ -81,9 +81,11 @@ public class Client {
 			res.status(200);
 			res.body("SUCCESS RECEIVE SAMPLE");
 			request_count++;
-			LOG.log(Level.FINE, req.body().toString());
+			LOG.info("Recieved request from " + req.ip() + " on port " + req.port() + " with body as " + req.body().toString());
+			LOG.info("total request from sort nodes count " + request_count);
 			samples.add(new Distribution(req.body().toString()));
 			if (request_count == FILE_NUM) {
+				LOG.info("request count = to file number. Posting partitions");
 				postResult(samples);
 			}
 
@@ -95,17 +97,16 @@ public class Client {
 			res.status(200);
 			res.body("SUCCESS SIGNAL RECEIVED");
 			signal_count++;
-			LOG.log(Level.FINE, "Sort work done signal from: " + req.ip());
+			LOG.log(Level.INFO, "Sort work done signal from: " + req.ip());
+			LOG.info("total signal count " + signal_count);
 			if (signal_count == SLAVE_NUM) {
 				long totalTime = System.currentTimeMillis() - startTime;
 				System.out.println("Sort Job Done");
 				System.out.println("Total Time: " + totalTime / 1000 + " Seconds");
-				// TODO terminate program. // trivial
+				System.exit(0);
 			}
-
 			return res.body().toString();
 		});
-
 	}
 
 	/**
@@ -115,13 +116,17 @@ public class Client {
 	 */
 	protected static void distributeJob(String inputS3Path) {
 		List<String> files = s3.getListOfObjects(inputS3Path);
+		LOG.info("Listing s3 objects " + files);
 		FILE_NUM = files.size();
+		LOG.info("file size " + FILE_NUM);
 		List<String> shares = divideJobs(files);
 		for (int i = 0; i < SLAVE_NUM; i++) {
 			String slaveIp = slaves.get(i);
 			String filesShare = shares.get(i);
 			try {
-				Unirest.post("http://" + slaveIp + ":" + DEFAULT_PORT + FILES_URL).body(filesShare).asString();
+				String req = "http://" + slaveIp + ":" + DEFAULT_PORT + FILES_URL;
+				Unirest.post(req).body(filesShare).asString();
+				LOG.info("Posting to " + req + "with body as " + filesShare);
 			} catch (Exception e) {
 				LOG.log(Level.SEVERE, "Failed to distribute files to slave: " + e.getMessage());
 			}
@@ -183,6 +188,7 @@ public class Client {
 					slaves.add(column[1]);
 				}
 			}
+			LOG.info("slaves " + slaves);
 			SLAVE_NUM = slaves.size();
 		}
 	}
@@ -198,7 +204,9 @@ public class Client {
 		LOG.log(Level.INFO, "partitions: " + ret);
 		for (String slaveIp : slaves) {
 			try {
-				Unirest.post("http://" + slaveIp + ":" + DEFAULT_PORT + DISTRIBUTION_URL).body(ret).asString();
+				String req = "http://" + slaveIp + ":" + DEFAULT_PORT + DISTRIBUTION_URL;
+				LOG.info("posting request to " + req + " with body as " + ret);
+				Unirest.post(req).body(ret).asString();
 			} catch (UnirestException e) {
 				LOG.log(Level.SEVERE, "UNABLE TO POST RESULT TO SLAVE: " + slaveIp);
 			}

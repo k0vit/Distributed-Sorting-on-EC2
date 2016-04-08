@@ -116,6 +116,14 @@ public class Client {
 	 */
 	protected static void distributeJob(String inputS3Path) {
 		List<String> files = s3.getListOfObjects(inputS3Path);
+		List<String> curatedFiles = new ArrayList<String>();
+		for (String file : files) {
+			if (checkFileExtensionsIsGz(file)) {
+				String onlyFileName = file.split("/")[1];
+				curatedFiles.add(onlyFileName);
+			}
+		}
+		
 		LOG.info("Listing s3 objects " + files);
 		FILE_NUM = files.size();
 		LOG.info("file size " + FILE_NUM);
@@ -285,5 +293,20 @@ public class Client {
 		}
 		obj.put("partitions", arr);
 		return obj;
+	}
+	
+	/**
+	 * Check file extension is .gz or not.
+	 * 
+	 * @param fileName
+	 * @return
+	 */
+	private static boolean checkFileExtensionsIsGz(String fileName) {
+		String format = fileName.substring(fileName.lastIndexOf(".") + 1);
+		if (format.equals("gz")) {
+			return true;
+		} else {
+			return false;
+		}
 	}
 }

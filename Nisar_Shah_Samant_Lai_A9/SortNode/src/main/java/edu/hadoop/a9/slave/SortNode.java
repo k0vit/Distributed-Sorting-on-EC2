@@ -318,9 +318,14 @@ public class SortNode {
 	private static void randomlySample(String[] filenames, BasicAWSCredentials awsCredentials, String inputS3Path) {
 		ThreadPoolExecutor executor = (ThreadPoolExecutor) Executors.newCachedThreadPool();
 		for (String filename : filenames) {
-			Task task = new Task(filename, clientIp, awsCredentials, inputS3Path);
-			log.info("Start multithreading tasks");
-			executor.execute(task);
+			//Check if filename is ending with .gz
+			if (checkFileExtensionsIsGz(filename)) {
+				Task task = new Task(filename, clientIp, awsCredentials, inputS3Path);
+				log.info("Start multithreading tasks");
+				executor.execute(task);
+			} else {
+				log.info(String.format("Filename: %s does not end with .gz, Thus skipped", filename));
+			}
 		}
 		log.info("Executor shutdown");
 		executor.shutdown();

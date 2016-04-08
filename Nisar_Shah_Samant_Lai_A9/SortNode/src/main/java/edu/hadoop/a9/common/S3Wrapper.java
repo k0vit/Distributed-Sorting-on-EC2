@@ -65,9 +65,9 @@ public class S3Wrapper {
 		int index = simplifiedPath.indexOf("/");
 		String bucketName = simplifiedPath.substring(0, index);
 		String key = simplifiedPath.substring(index + 1);
-		tx.download(bucketName, key, new File(filename));
 		log.info(String.format("[%s] Downloaded file with Bucket Name: %s Key: %s ", filename, bucketName, key));
 		log.info("CURRENT USER DIRECTORY: " + System.getProperty("user.dir"));
+		tx.download(bucketName, key, new File(filename));
 		return filename;
 	}
 

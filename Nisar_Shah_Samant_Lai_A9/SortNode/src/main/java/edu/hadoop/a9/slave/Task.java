@@ -75,9 +75,14 @@ public class Task implements Runnable {
 				if ((parts.length < 9) || parts[BULBTEMP_INDEX].equals("-")) {
 					continue;
 				}
-				double temp = Double.parseDouble(parts[BULBTEMP_INDEX]);
-				if (samplesTaken < totalSamplesToTake && rnd.nextBoolean()) {
-					array.add(temp);
+				try {
+					double temp = Double.parseDouble(parts[BULBTEMP_INDEX]);
+					if (samplesTaken < totalSamplesToTake && rnd.nextBoolean()) {
+						array.add(temp);
+					}
+				} catch (Exception e) {
+					log.severe("Exception: " + e.getMessage() + " parsing data");
+					continue;
 				}
 			}
 			in.close();

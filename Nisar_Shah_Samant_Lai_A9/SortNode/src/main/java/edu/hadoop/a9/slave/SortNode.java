@@ -67,8 +67,9 @@ public class SortNode {
 			System.exit(-1);
 		}
 
-		log.info(String.format("<input s3 path>: %s <output s3 path>: %s <config file path s3>: %s", args[0], args[1], args[2]));
-		
+		log.info(String.format("<input s3 path>: %s <output s3 path>: %s <config file path s3>: %s", args[0], args[1],
+				args[2]));
+
 		String inputS3Path = args[0];
 		String outputS3Path = args[1];
 		String configFilePath = args[2];
@@ -129,7 +130,8 @@ public class SortNode {
 	}
 
 	/**
-	 * If All data is received then start sorting the data you have and write it to S3.
+	 * If All data is received then start sorting the data you have and write it
+	 * to S3.
 	 * 
 	 */
 	private static void checkIfAllDataReceived(String outputS3Path, S3Wrapper wrapper) {
@@ -179,7 +181,8 @@ public class SortNode {
 						MAXIMUM_PARTITION = maximumPartition;
 						MINIMUM_PARTITION = minimumPartition;
 						INSTANCE_ID = instanceIdLong;
-						log.info(String.format("Sort Node Info: InstanceId: %s maxPartition: %s minPartition: %s", INSTANCE_ID, MAXIMUM_PARTITION, MINIMUM_PARTITION));
+						log.info(String.format("Sort Node Info: InstanceId: %s maxPartition: %s minPartition: %s",
+								INSTANCE_ID, MAXIMUM_PARTITION, MINIMUM_PARTITION));
 					}
 					ipToMaxMap.put(nodeIp, maximumPartition);
 					ipToMinMap.put(nodeIp, minimumPartition);
@@ -199,26 +202,35 @@ public class SortNode {
 				reader.readNext();
 				while ((line = reader.readNext()) != null) {
 					if (!(line.length < 9) && !line[DRY_BULB_COL].equals("-")) {
-						double dryBulbTemp = Double.parseDouble(line[DRY_BULB_COL]);
-						// Check which partition it lies within and send to
-						// the sortNode required
-						for (String instanceIp : ipToMaxMap.keySet()) {
-							if (dryBulbTemp >= ipToMinMap.get(instanceIp)
-									&& dryBulbTemp <= ipToMaxMap.get(instanceIp)) {
-								if (instanceIp == INSTANCE_IP) {
-									unsortedData.add(line);
-								} else {
-									if (ipToCountOfRequests.get(instanceIp) < NUMBER_OF_REQUESTS_STORED) {
-										ipToCountOfRequests.put(instanceIp, ipToCountOfRequests.get(instanceIp) + 1);
-										ipToActualRequestString.put(instanceIp,
-												ipToActualRequestString.get(instanceIp).append(":" + line));
+						double dryBulbTemp;
+						try {
+							dryBulbTemp = Double.parseDouble(line[DRY_BULB_COL]);
+							// Check which partition it lies within and send to
+							// the sortNode required
+							for (String instanceIp : ipToMaxMap.keySet()) {
+								if (dryBulbTemp >= ipToMinMap.get(instanceIp)
+										&& dryBulbTemp <= ipToMaxMap.get(instanceIp)) {
+									if (instanceIp == INSTANCE_IP) {
+										unsortedData.add(line);
 									} else {
-										sendRequestToSortNode(instanceIp, ipToCountOfRequests, ipToActualRequestString);
+										if (ipToCountOfRequests.get(instanceIp) < NUMBER_OF_REQUESTS_STORED) {
+											ipToCountOfRequests.put(instanceIp,
+													ipToCountOfRequests.get(instanceIp) + 1);
+											ipToActualRequestString.put(instanceIp,
+													ipToActualRequestString.get(instanceIp).append(":" + line));
+										} else {
+											sendRequestToSortNode(instanceIp, ipToCountOfRequests,
+													ipToActualRequestString);
+										}
 									}
+									break;
 								}
-								break;
 							}
+						} catch (Exception e) {
+							log.severe("Exception: " + e.getMessage() + " parsing data");
+							continue;
 						}
+
 					}
 				}
 				reader.close();
@@ -271,7 +283,8 @@ public class SortNode {
 	private static void readFileAndSetProps(String configFileName) {
 		FileReader fr;
 		try {
-			log.info(String.format("Reading config file from path: %s", System.getProperty("user.dir") + File.separator + configFileName));
+			log.info(String.format("Reading config file from path: %s",
+					System.getProperty("user.dir") + File.separator + configFileName));
 			fr = new FileReader(System.getProperty("user.dir") + File.separator + configFileName);
 
 			BufferedReader br = new BufferedReader(fr);
@@ -323,7 +336,7 @@ public class SortNode {
 	private static void randomlySample(String[] filenames, BasicAWSCredentials awsCredentials, String inputS3Path) {
 		ThreadPoolExecutor executor = (ThreadPoolExecutor) Executors.newCachedThreadPool();
 		for (String filename : filenames) {
-			//Check if filename is ending with .gz
+			// Check if filename is ending with .gz
 			if (checkFileExtensionsIsGz(filename)) {
 				Task task = new Task(filename, clientIp, awsCredentials, inputS3Path);
 				log.info("Start task");

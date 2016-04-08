@@ -31,7 +31,7 @@ import com.amazonaws.services.s3.AmazonS3Client;
 import com.mashape.unirest.http.exceptions.UnirestException;
 import com.opencsv.CSVReader;
 
-import edu.hadoop.a9.common.ClientNodeCommWrapper;
+import edu.hadoop.a9.common.NodeCommWrapper;
 import edu.hadoop.a9.common.S3Wrapper;
 
 public class SortNode {
@@ -47,6 +47,8 @@ public class SortNode {
 	static String INSTANCE_IP;
 	static long INSTANCE_ID;
 	static ArrayList<String[]> unsortedData = new ArrayList<String[]>();
+	//To avoid synchronization issues create one more list of records.
+	static ArrayList<String[]> dataFromOtherNodes = new ArrayList<String[]>();
 	public static final String PORT_FOR_SORT_NODE_COMM = "1234";
 	public static final String PORT_FOR_CLIENT_COMM = "4567";
 	public static final int NUMBER_OF_REQUESTS_STORED = 20000;
@@ -54,6 +56,7 @@ public class SortNode {
 	public static final String END_URL = "end";
 	public static final String END_OF_SORTING_URL = "signals";
 	static int NO_OF_SORT_NODES_WHERE_DATA_IS_RECEIVED = 0;
+	static int SORT_NODES_WITH_NO_WORK = 0;
 	
 	public static void main(String[] args) {
 		if (args.length != 5) {
@@ -65,6 +68,7 @@ public class SortNode {
 			System.exit(-1);
 		}
 		
+		String inputS3Path = args[0];
 		String outputS3Path = args[1];
 		String configFilePath = args[2];
 		accessKey = args[3];
@@ -83,12 +87,15 @@ public class SortNode {
 			readFileAndSetProps(configFileName);
 			
 			//This is the first thing node will do as soon as it is up.
-			sendSampleDistribution(wrapper, awsCredentials);
+			sendSampleDistribution(wrapper, awsCredentials, inputS3Path);
 			
+			//Read partitions from client and send data to other sort nodes.
 			readPartitionsFromClient();
 			
+			//Receive data from other sort nodes in the different list.
 			receiveDataFromOtherSortNodes();
 			
+			//Once all data is received then sort the data and upload result file to S3.
 			checkIfAllDataReceived(outputS3Path, wrapper);
 			
 		} catch (IOException | InterruptedException e) {
@@ -103,7 +110,7 @@ public class SortNode {
 			String recordList = request.body();
 			String[] records = recordList.split(":");
 			for (String record : records) {
-				unsortedData.add(record.split(","));
+				dataFromOtherNodes.add(record.split(","));
 			}
 			response.status(200);
 			response.body("Awesome");
@@ -118,10 +125,10 @@ public class SortNode {
 	private static void checkIfAllDataReceived(String outputS3Path, S3Wrapper wrapper) {
 		post("/end", (request, response) -> {
 			NO_OF_SORT_NODES_WHERE_DATA_IS_RECEIVED++;
-			if (NO_OF_SORT_NODES_WHERE_DATA_IS_RECEIVED == TOTAL_NO_OF_SORT_NODES) {
+			if (NO_OF_SORT_NODES_WHERE_DATA_IS_RECEIVED == TOTAL_NO_OF_SORT_NODES - 1) {
 				sortYourOwnData();
 				if (wrapper.uploadDataToS3(outputS3Path, unsortedData, INSTANCE_ID)) {
-					ClientNodeCommWrapper.SendData(clientIp, PORT_FOR_CLIENT_COMM, END_OF_SORTING_URL, "SORTED");	
+					NodeCommWrapper.SendData(clientIp, PORT_FOR_CLIENT_COMM, END_OF_SORTING_URL, "SORTED");
 				}
 			}
 			return response.body().toString();
@@ -145,14 +152,21 @@ public class SortNode {
 				Long minimumPartition = (Long) jsonObject.get("min");
 				Long maximumPartition = (Long) jsonObject.get("max");
 				String nodeIp = (String) jsonObject.get("nodeIp");
-				Long instanceId = (Long) jsonObject.get("instanceId");
-				if (nodeIp == INSTANCE_IP) {
-					MAXIMUM_PARTITION = maximumPartition;
-					MINIMUM_PARTITION = minimumPartition;
-					INSTANCE_ID = instanceId;
+				String instanceId = (String) jsonObject.get("instanceId");
+				if (instanceId.equals("NOWORK")) {
+					NodeCommWrapper.SendData(nodeIp, PORT_FOR_SORT_NODE_COMM, END_URL, "EOF");
+					SORT_NODES_WITH_NO_WORK++;
+					return response.body().toString();
+				} else {
+					Long instanceIdLong = Long.parseLong(instanceId);
+					if (nodeIp == INSTANCE_IP) {
+						MAXIMUM_PARTITION = maximumPartition;
+						MINIMUM_PARTITION = minimumPartition;
+						INSTANCE_ID = instanceIdLong;
+					}
+					ipToMaxMap.put(nodeIp, maximumPartition);
+					ipToMinMap.put(nodeIp, minimumPartition);
 				}
-				ipToMaxMap.put(nodeIp, maximumPartition);
-				ipToMinMap.put(nodeIp, minimumPartition);
 			}
 			
 			// Read local data line by line
@@ -197,11 +211,10 @@ public class SortNode {
 				for(String ipAddress : ipToCountOfRequests.keySet()) {
 					sendRequestToSortNode(ipAddress, ipToCountOfRequests, ipToActualRequestString);
 					// SEND EOF to signal end of file
-					ClientNodeCommWrapper.SendData(ipAddress, PORT_FOR_SORT_NODE_COMM, END_URL, "EOF");
+					NodeCommWrapper.SendData(ipAddress, PORT_FOR_SORT_NODE_COMM, END_URL, "EOF");
 				}
 				
 			}
-			
 			
 			return response.body().toString();
 		});
@@ -214,7 +227,7 @@ public class SortNode {
 		ipToCountOfRequests.put(instanceIp, 0);
 		String recordList = sb.toString();
 		try {
-			ClientNodeCommWrapper.SendData(instanceIp, PORT_FOR_SORT_NODE_COMM, PARTITION_URL ,recordList);
+			NodeCommWrapper.SendData(instanceIp, PORT_FOR_SORT_NODE_COMM, PARTITION_URL ,recordList);
 		} catch (UnirestException e) {
 			log.severe(e.getMessage());
 		}
@@ -242,7 +255,7 @@ public class SortNode {
 		br.close();
 	}
 	
-	public static void sendSampleDistribution(S3Wrapper wrapper, BasicAWSCredentials awsCredentials) {
+	public static void sendSampleDistribution(S3Wrapper wrapper, BasicAWSCredentials awsCredentials, String inputS3Path) {
 		try {
 			post("/files", (request, response) -> {
 				//Receive request from client for the files which need to be taken care of
@@ -250,9 +263,10 @@ public class SortNode {
 				response.status(200);
 				response.body("SUCCESS");
 				String fileString = request.body();
-				String[] filenames = downloadAndStoreFileInLocal(wrapper, fileString, awsCredentials);
-				randomlySample(filenames);
-				return response.body();
+				String[] filenames = fileString.split(",");
+//				String[] filenames = wrapper.downloadAndStoreFileInLocal(fileString, awsCredentials);
+				randomlySample(filenames, awsCredentials, inputS3Path);
+				return response.body().toString();
 			});
 
 		} catch (Exception exp) {
@@ -267,28 +281,17 @@ public class SortNode {
 	 * This method takes the string of filenames, creates separate threads and sends each file sampling to client Node. 
 	 * @param filenames
 	 */
-	private static void randomlySample(String[] filenames) {
+	private static void randomlySample(String[] filenames, BasicAWSCredentials awsCredentials, String inputS3Path) {
 		ThreadPoolExecutor executor = (ThreadPoolExecutor)Executors.newCachedThreadPool();
 		for (String filename : filenames) {
-			Task task = new Task(filename, clientIp);
+			Task task = new Task(filename, clientIp, awsCredentials, inputS3Path);
 			executor.execute(task);
 		}
 		executor.shutdown();
 	}
-
-	private static String[] downloadAndStoreFileInLocal(S3Wrapper wrapper, String fileString, BasicAWSCredentials awsCredentials) {
-		String[] files = fileString.split(",");
-		for (String file : files) {
-			try {
-				wrapper.readOutputFromS3(file, awsCredentials);
-			} catch (IOException | InterruptedException e) {
-				log.severe(e.getMessage());
-			}
-		}
-		return files;
-	}
 	
 	private static void sortYourOwnData() {
+		unsortedData.addAll(dataFromOtherNodes);
 		Collections.sort(unsortedData, new Comparator<String[]>() {
 			@Override
 			public int compare(String[] o1, String[] o2) {

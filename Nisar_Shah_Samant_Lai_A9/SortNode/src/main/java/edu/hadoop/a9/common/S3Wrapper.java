@@ -4,6 +4,7 @@ import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.logging.Logger;
@@ -22,45 +23,45 @@ import com.amazonaws.services.s3.transfer.TransferManager;
 import com.opencsv.CSVWriter;
 
 public class S3Wrapper {
-	public S3Wrapper( AmazonS3 s3client ) {
+	public S3Wrapper(AmazonS3 s3client) {
 		this.s3client = s3client;
 	}
-	
-	public List<String> getListOfObjects( String bucketName , String prefix )
-		throws AmazonServiceException {
+
+	public List<String> getListOfObjects(String bucketName, String prefix) throws AmazonServiceException {
 		log.info(String.format("Requesting object listing for s3://%s/%s", bucketName, prefix));
-		
+
 		ListObjectsRequest request = new ListObjectsRequest();
 		request.withBucketName(bucketName);
 		request.withPrefix(prefix);
-		
+
 		ArrayList<String> files = new ArrayList<String>();
 		ObjectListing listing = null;
 		do {
 			listing = s3client.listObjects(request);
-			for(S3ObjectSummary summary : listing.getObjectSummaries()){
+			for (S3ObjectSummary summary : listing.getObjectSummaries()) {
 				log.info("Object: " + summary.getKey());
 				files.add(summary.getKey());
 			}
-		} while(listing.isTruncated());
-		
+		} while (listing.isTruncated());
+
 		return files;
 	}
-	
-	public InputStream getObjectInputStream( String bucketName , String objectId ) {
+
+	public InputStream getObjectInputStream(String bucketName, String objectId) {
 		log.info(String.format("Requesting for object: s3://%s/%s", bucketName, objectId));
-		
+
 		GetObjectRequest request = new GetObjectRequest(bucketName, objectId);
 		S3Object object = s3client.getObject(request);
 		ObjectMetadata md = object.getObjectMetadata();
-		
+
 		log.info(String.format("Content Type: %s", md.getContentType()));
 		log.info(String.format("Content Length: %d", md.getContentLength()));
-		
+
 		return object.getObjectContent();
 	}
-	
-	public String readOutputFromS3(String outputPath, BasicAWSCredentials cred) throws IOException, InterruptedException {
+
+	public String readOutputFromS3(String outputPath, BasicAWSCredentials cred)
+			throws IOException, InterruptedException {
 		TransferManager tx = new TransferManager(cred);
 		String simplifiedPath = (outputPath.replace("s3://", ""));
 		int index = simplifiedPath.indexOf("/");
@@ -69,11 +70,13 @@ public class S3Wrapper {
 		tx.downloadDirectory(bucketName, key, new File(System.getProperty("user.dir")));
 		return key;
 	}
-	
+
 	/**
 	 * 
-	 * @param file File to be uploaded.
-	 * @param s3OutputPath Path to be uploaded to.
+	 * @param file
+	 *            File to be uploaded.
+	 * @param s3OutputPath
+	 *            Path to be uploaded to.
 	 * @return true if uploaded successfully.
 	 */
 	public boolean uploadFile(String file, String s3OutputPath) {
@@ -93,7 +96,7 @@ public class S3Wrapper {
 			return path;
 		return path.substring("s3://".length());
 	}
-	
+
 	public boolean uploadDataToS3(String outputS3Path, ArrayList<String[]> nowSortedData, Long instanceId) {
 		String fileName = "part-r-" + instanceId + ".csv";
 		try {
@@ -102,14 +105,24 @@ public class S3Wrapper {
 			writer.close();
 			if (uploadFile(fileName, outputS3Path)) {
 				return true;
-			} 
+			}
 		} catch (IOException e) {
 			log.severe(e.getMessage());
 		}
 		return false;
 	}
-	
+
+	public String downloadAndStoreFileInLocal(String fileString, BasicAWSCredentials awsCredentials, String inputS3Path) {
+		try {
+			String s3FullPath = Paths.get(inputS3Path, fileString).toString();
+			readOutputFromS3(s3FullPath, awsCredentials);
+		} catch (IOException | InterruptedException e) {
+			log.severe(e.getMessage());
+		}
+		return fileString;
+	}
+
 	private static final Logger log = Logger.getLogger(S3Wrapper.class.getName());
 	private AmazonS3 s3client;
-	
+
 }

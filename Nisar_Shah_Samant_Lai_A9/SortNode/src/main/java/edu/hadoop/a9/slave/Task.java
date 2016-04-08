@@ -13,7 +13,11 @@ import java.util.zip.GZIPInputStream;
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 
-import edu.hadoop.a9.common.ClientNodeCommWrapper;
+import com.amazonaws.auth.BasicAWSCredentials;
+import com.amazonaws.services.s3.AmazonS3Client;
+
+import edu.hadoop.a9.common.NodeCommWrapper;
+import edu.hadoop.a9.common.S3Wrapper;
 
 public class Task implements Runnable {
 	private final String filename;
@@ -24,17 +28,24 @@ public class Task implements Runnable {
 	private final String clientIp;
 	private static final String CLIENT_PORT = "4567";
 	private static final String SAMPLE_URL = "samples";
+	private final BasicAWSCredentials awsCredentials;
+	private final String inputS3Path;
 	
-	public Task(String filename, String clientIp) {
+	public Task(String filename, String clientIp, BasicAWSCredentials awsCredentials, String inputS3Path) {
 		this.filename = filename;
 		this.clientIp = clientIp;
+		this.awsCredentials = awsCredentials;
+		this.inputS3Path = inputS3Path;
 	}
 	
 	public void run() {
 		try {
-			String jsonDist = GetDistribution();
+			AmazonS3Client s3client = new AmazonS3Client(awsCredentials);
+			S3Wrapper wrapper = new S3Wrapper(s3client);
+			String fileName = wrapper.downloadAndStoreFileInLocal(filename, awsCredentials, inputS3Path);
+			String jsonDist = GetDistribution(fileName);
 			if( jsonDist != null )
-				ClientNodeCommWrapper.SendData(clientIp, CLIENT_PORT, SAMPLE_URL, jsonDist);
+				NodeCommWrapper.SendData(clientIp, CLIENT_PORT, SAMPLE_URL, jsonDist);
 		} catch ( Exception exp ) {
 			StringWriter sw = new StringWriter();
 			exp.printStackTrace(new PrintWriter(sw));
@@ -44,8 +55,8 @@ public class Task implements Runnable {
 	}
 	
 	@SuppressWarnings("unchecked")
-	public String GetDistribution() throws Exception {
-		File file = new File(System.getProperty("user.dir"), filename);
+	public String GetDistribution(String fileName) throws Exception {
+		File file = new File(System.getProperty("user.dir"), fileName);
 		InputStream is = new FileInputStream(file);
 		is = new GZIPInputStream(is);
 		Scanner in = new Scanner(is);

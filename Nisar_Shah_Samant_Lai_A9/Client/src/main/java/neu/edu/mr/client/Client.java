@@ -33,6 +33,7 @@ public class Client {
 	private final static String SIGNAL_URL = "/signals";
 	private final static String FILES_URL = "/files";
 	private final static String DEFAULT_PORT = "4567";
+	public final static String NULL_JOB_SIGNAL = "NOWORK";
 	public final static String DELIMITER_OF_FILE = ",";
 	private static int request_count = 0;
 	private static int signal_count = 0;
@@ -43,8 +44,7 @@ public class Client {
 	protected static ArrayList<String> slaves;
 	private static S3Service s3;
 
-	//TODO Remove throws and catch all exceptions.
-	public static void main(String[] args) throws UnirestException, IOException, InterruptedException {
+	public static void main(String[] args) {
 		if (args.length != 5) {
 			System.err.println(
 					"Usage: Client <input s3 path> <output s3 path> <config file path s3> <aws access key> <aws secret key>");
@@ -64,7 +64,11 @@ public class Client {
 
 		// read config files
 		LOG.log(Level.FINE, "reading configuration");
-		readConfigInfo(args[2]);
+		try {
+			readConfigInfo(args[2]);
+		} catch (IOException e) {
+			LOG.log(Level.SEVERE, "failed to read configuration file: " + e.getMessage());
+		}
 
 		// send file names to each sort node. /files post request
 		LOG.log(Level.FINE, "distributing jobs");
@@ -96,7 +100,7 @@ public class Client {
 				long totalTime = System.currentTimeMillis() - startTime;
 				System.out.println("Sort Job Done");
 				System.out.println("Total Time: " + totalTime / 1000 + " Seconds");
-				//TODO terminate program.
+				// TODO terminate program. // trivial
 			}
 
 			return res.body().toString();
@@ -208,7 +212,7 @@ public class Client {
 	 * @return
 	 */
 	public static JSONObject calculateDistribution(ArrayList<Distribution> dis) {
-		ArrayList<Long> samples = new ArrayList<>();
+		ArrayList<Double> samples = new ArrayList<>();
 		for (Distribution distribution : dis) {
 			samples.addAll(distribution.getSamples());
 		}
@@ -216,41 +220,56 @@ public class Client {
 	}
 
 	/**
-	 * partition the data to several job
+	 * partition the data to several jobs
 	 * 
 	 * @param samples
 	 * @param slaves
 	 * @return
 	 */
 	@SuppressWarnings("unchecked")
-	//TODO check all cases and make samples from long to double.
-	public static JSONObject partition(ArrayList<Long> samples, ArrayList<String> slaves) {
+	public static JSONObject partition(ArrayList<Double> samples, ArrayList<String> slaves) {
 		Collections.sort(samples);
 		int length = samples.size();
 		JSONObject obj = new JSONObject();
 		JSONArray arr = new JSONArray();
 		int range = samples.size() / slaves.size();
 		try {
-			for (int i = 0, node = 0; i < length && node < slaves.size(); node++) {
+			int node = 0;
+			double pre = Double.MIN_VALUE;
+			for (int i = 0; i < length && node < slaves.size(); node++) {
 				JSONObject job = new JSONObject();
-				int endpos = Math.min(length - 1, i + range);
-				long end = samples.get(endpos);
+				int endpos = Math.min(length - 1, i + range - 1);
+				double end = samples.get(endpos);
 
 				if (node == 0)
-					job.put("min", Long.MIN_VALUE);
+					job.put("min", Double.MIN_VALUE);
 				else
-					job.put("min", samples.get(i));
+					job.put("min", pre + 0.1);
 
-				if (node == slaves.size() - 1)
-					job.put("max", Long.MAX_VALUE);
+				if (node == slaves.size() - 1 || i + range >= length)
+					job.put("max", Double.MAX_VALUE);
 				else
 					job.put("max", end);
+
 				job.put("nodeIp", slaves.get(node));
 				job.put("instanceId", node);
 				arr.add(job);
 				i += range;
+				pre = end;
 				while (i < length && samples.get(i) == end)
 					i++;
+			}
+			/*
+			 * for those nodes that dont have to work, send a dummy signal
+			 */
+			while (node < slaves.size()) {
+				JSONObject nullJob = new JSONObject();
+				nullJob.put("min", 0);
+				nullJob.put("max", 0);
+				nullJob.put("nodeIp", slaves.get(node));
+				nullJob.put("instanceId", NULL_JOB_SIGNAL);
+				arr.add(nullJob);
+				node++;
 			}
 		} catch (JSONException e) {
 			LOG.log(Level.SEVERE, e.getMessage());

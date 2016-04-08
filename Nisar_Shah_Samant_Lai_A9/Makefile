@@ -1,4 +1,7 @@
 dist_sort:
+	rm -rf sortnode-*.txt
+	rm -rf client-output.txt
+	rm -rf cluster_manager*.txt
 	cd ClusterManager && exec mvn clean install
 	cp ClusterManager/target/nisar_shah_lai_samant_a9-0.0.1-SNAPSHOT-jar-with-dependencies.jar .
 	cd SortNode && exec mvn clean install

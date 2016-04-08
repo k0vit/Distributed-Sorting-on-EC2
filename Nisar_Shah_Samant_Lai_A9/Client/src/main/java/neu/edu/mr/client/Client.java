@@ -124,10 +124,10 @@ public class Client {
 			}
 		}
 		
-		LOG.info("Listing s3 objects " + files);
-		FILE_NUM = files.size();
+		LOG.info("Listing s3 objects " + curatedFiles);
+		FILE_NUM = curatedFiles.size();
 		LOG.info("file size " + FILE_NUM);
-		List<String> shares = divideJobs(files);
+		List<String> shares = divideJobs(curatedFiles);
 		for (int i = 0; i < SLAVE_NUM; i++) {
 			String slaveIp = slaves.get(i);
 			String filesShare = shares.get(i);

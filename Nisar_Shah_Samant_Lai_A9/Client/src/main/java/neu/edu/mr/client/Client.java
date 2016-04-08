@@ -40,7 +40,7 @@ public class Client {
 	public static int SLAVE_NUM;
 	public static int FILE_NUM;
 	public static long startTime;
-	protected static ArrayList<Distribution> samples;
+	protected static ArrayList<Distribution> samples = new ArrayList();
 	protected static ArrayList<String> slaves;
 	private static S3Service s3;
 
@@ -81,8 +81,8 @@ public class Client {
 			res.status(200);
 			res.body("SUCCESS RECEIVE SAMPLE");
 			request_count++;
-			LOG.info("Recieved request from " + req.ip() + " on port " + req.port() + " with body as " + req.body().toString());
-			LOG.info("total request from sort nodes count " + request_count);
+			LOG.info("Recieved request from " + req.ip() + " on port " + req.port());
+			LOG.info("total request from files " + request_count);
 			samples.add(new Distribution(req.body().toString()));
 			if (request_count == FILE_NUM) {
 				LOG.info("request count = to file number. Posting partitions");

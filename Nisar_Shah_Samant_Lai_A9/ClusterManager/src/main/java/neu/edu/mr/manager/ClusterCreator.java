@@ -29,7 +29,7 @@ public class ClusterCreator {
 
 	private ClusterParams params;
 	private AmazonEC2Client amazonEC2Client;
-	private final static Logger LOGGER = Logger.getLogger(Main.CLUSTER_MANAGER_LOGGER);
+	private final static Logger LOGGER = Main.logger;
 	private final String keyName = "a9key";
 	private final String securityGrpName = "a9securitygrp";
 

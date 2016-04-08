@@ -74,7 +74,7 @@ public class SortNode {
 		String configFilePath = args[2];
 		accessKey = args[3];
 		secretKey = args[4];
-		String configFileName = configFilePath.substring(configFilePath.lastIndexOf('/' + 1));
+		String configFileName = configFilePath.substring(configFilePath.lastIndexOf("/") + 1);
 
 		log.info("Application Initialized");
 

@@ -36,7 +36,7 @@ public class S3Service {
 	 * @return
 	 */
 	public List<String> getListOfObjects(String dirURL){
-		LOG.log(Level.FINE, "Listing object in folder: "+dirURL);
+		LOG.log(Level.INFO, "Listing object in folder: "+dirURL);
 		String simplifiedPath = null;
 		if (dirURL.startsWith("s3://")) simplifiedPath = dirURL.replace("s3://", "");
 		int index = simplifiedPath.indexOf("/");
@@ -53,7 +53,7 @@ public class S3Service {
 	 * @throws AmazonServiceException
 	 */
 	public List<String> getListOfObjects(String bucketName, String prefix) throws AmazonServiceException {
-		LOG.log(Level.FINE, "Listing object in folder: "+prefix+" from bucket: "+bucketName);
+		LOG.log(Level.INFO, "Listing object in folder: "+prefix+" from bucket: "+bucketName);
 		ListObjectsRequest request = new ListObjectsRequest();
 		request.withBucketName(bucketName);
 		request.withPrefix(prefix);
@@ -76,7 +76,7 @@ public class S3Service {
 	 * @throws IOException
 	 */
 	public InputStream getObjectInputStream(String bucketName, String objectId) throws IOException {
-		LOG.log(Level.FINE, "reading from file: "+objectId+" in bucket: "+bucketName);
+		LOG.log(Level.INFO, "reading from file: "+objectId+" in bucket: "+bucketName);
 		GetObjectRequest request = new GetObjectRequest(bucketName, objectId);
 		S3Object object = s3client.getObject(request);
 		return object.getObjectContent();
@@ -89,7 +89,7 @@ public class S3Service {
 	 * @throws IOException
 	 */
 	public InputStream getObjectInputStream(String configUrl) throws IOException{
-		LOG.log(Level.FINE, "reading file: "+configUrl);
+		LOG.log(Level.INFO, "reading file: "+configUrl);
 		String simplifiedPath = null;
 		if (configUrl.startsWith("s3://")) simplifiedPath = configUrl.replace("s3://", "");
 		int index = simplifiedPath.indexOf("/");

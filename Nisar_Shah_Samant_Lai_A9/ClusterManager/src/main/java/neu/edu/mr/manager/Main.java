@@ -4,11 +4,9 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.InputStream;
 import java.util.Properties;
-import java.util.logging.FileHandler;
+import java.util.logging.ConsoleHandler;
 import java.util.logging.Level;
-import java.util.logging.LogManager;
 import java.util.logging.Logger;
-import java.util.logging.SimpleFormatter;
 
 public class Main {
 
@@ -18,6 +16,7 @@ public class Main {
 	public static final String EC2_KEY_FILE_NAME = "ec2key.pem";
 	public static final String CLIENT_JAR = "client-0.0.1-SNAPSHOT-jar-with-dependencies.jar";
 	public static final String SORT_NODE_JAR = "SortNode-0.0.1-SNAPSHOT-jar-with-dependencies.jar";
+	public static Logger logger; 
 
 	/**
 	 * 0 -action 
@@ -27,10 +26,10 @@ public class Main {
 	 * @param args
 	 */
 	public static void main(String[] args) {
-		logSetup();
-		
+		logger = logSetup();
+
 		ClusterParams params = new ClusterParams("cluster.properties");
-		
+
 		LOGGER.log(Level.FINE, "Action to be performed " + args[0]);
 		if (args[0].equalsIgnoreCase("create")) {
 			ClusterCreator creator = new ClusterCreator(params);
@@ -55,20 +54,13 @@ public class Main {
 		}
 	}
 
-	private static void logSetup() {
-		LogManager.getLogManager().reset();
+	private static Logger logSetup() {
 		Logger logger = Logger.getLogger(CLUSTER_MANAGER_LOGGER);
-		logger.setLevel(Level.FINE);
-		FileHandler logFileHandler = null;
-		try {
-			logFileHandler = new FileHandler("ClusterManager.log", true);
-			SimpleFormatter formatterTxt = new SimpleFormatter();
-			logFileHandler.setFormatter(formatterTxt);
-			logger.addHandler(logFileHandler);
-		}
-		catch (Exception e) {
-			System.err.print("Could not create log file");
-		}
+		ConsoleHandler handler = new ConsoleHandler();
+		handler.setLevel(Level.ALL);
+		logger.setLevel(Level.ALL);
+		logger.addHandler(handler);
+		return logger;
 	}
 }
 

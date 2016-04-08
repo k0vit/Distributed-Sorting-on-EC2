@@ -73,7 +73,7 @@ public class Task implements Runnable {
 			}
 		}
 		in.close();
-		log.info(String.format("This %s is now sampled.",filename));
+		log.info(String.format("File: %s is now sampled.", fileName));
 		JSONObject mainObject = new JSONObject();
 		mainObject.put("samples", array);
 		return mainObject.toJSONString();

@@ -9,7 +9,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.logging.Logger;
 
-import com.amazonaws.AmazonServiceException;
 import com.amazonaws.auth.BasicAWSCredentials;
 import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.model.GetObjectRequest;
@@ -27,7 +26,7 @@ public class S3Wrapper {
 		this.s3client = s3client;
 	}
 
-	public List<String> getListOfObjects(String bucketName, String prefix) throws AmazonServiceException {
+	public List<String> getListOfObjects(String bucketName, String prefix) {
 		log.info(String.format("Requesting object listing for s3://%s/%s", bucketName, prefix));
 
 		ListObjectsRequest request = new ListObjectsRequest();
@@ -60,8 +59,7 @@ public class S3Wrapper {
 		return object.getObjectContent();
 	}
 
-	public String readOutputFromS3(String outputPath, BasicAWSCredentials cred)
-			throws IOException, InterruptedException {
+	public String readOutputFromS3(String outputPath, BasicAWSCredentials cred) {
 		TransferManager tx = new TransferManager(cred);
 		String simplifiedPath = (outputPath.replace("s3://", ""));
 		int index = simplifiedPath.indexOf("/");
@@ -113,12 +111,8 @@ public class S3Wrapper {
 	}
 
 	public String downloadAndStoreFileInLocal(String fileString, BasicAWSCredentials awsCredentials, String inputS3Path) {
-		try {
-			String s3FullPath = Paths.get(inputS3Path, fileString).toString();
-			readOutputFromS3(s3FullPath, awsCredentials);
-		} catch (IOException | InterruptedException e) {
-			log.severe(e.getMessage());
-		}
+		String s3FullPath = Paths.get(inputS3Path, fileString).toString();
+		readOutputFromS3(s3FullPath, awsCredentials);
 		return fileString;
 	}
 

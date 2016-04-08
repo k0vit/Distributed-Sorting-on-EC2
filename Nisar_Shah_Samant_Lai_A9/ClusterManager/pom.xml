@@ -37,7 +37,7 @@
 					<!-- MainClass in mainfest make a executable jar -->
 					<archive>
 						<manifest>
-							<mainClass>neu.edu.mr.a9.AirlineDataProcessorMain</mainClass>
+							<mainClass>neu.edu.mr.manager.Main</mainClass>
 						</manifest>
 					</archive>
 

@@ -10,6 +10,8 @@ import java.util.logging.Logger;
 
 import com.amazonaws.auth.BasicAWSCredentials;
 import com.amazonaws.services.ec2.AmazonEC2Client;
+import com.amazonaws.services.ec2.model.DeleteKeyPairRequest;
+import com.amazonaws.services.ec2.model.DeleteSecurityGroupRequest;
 import com.amazonaws.services.ec2.model.DescribeInstancesRequest;
 import com.amazonaws.services.ec2.model.DescribeInstancesResult;
 import com.amazonaws.services.ec2.model.Instance;
@@ -49,6 +51,13 @@ public class ClusterTerminator {
 					}
 				}
 			}
+			
+			DeleteKeyPairRequest deleteKeyPairRequest = new DeleteKeyPairRequest(Main.keyName);
+			amazonEC2Client.deleteKeyPair(deleteKeyPairRequest);
+			
+			DeleteSecurityGroupRequest delSecurityGrpReq = new DeleteSecurityGroupRequest(Main.securityGrpName);
+			amazonEC2Client.deleteSecurityGroup(delSecurityGrpReq);
+			
 			amazonEC2Client.shutdown();
 			return true;
 		}

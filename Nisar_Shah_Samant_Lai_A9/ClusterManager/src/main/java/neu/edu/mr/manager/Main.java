@@ -10,6 +10,8 @@ import java.util.logging.Logger;
 
 public class Main {
 
+	public static final String keyName = "a9key";
+	public static final String securityGrpName = "a9securitygrp";
 	public static final String CLUSTER_MANAGER_LOGGER = "ClusterManager";
 	private final static Logger LOGGER = Logger.getLogger(CLUSTER_MANAGER_LOGGER);
 	public static final String CLUSTER_DETAILS_FILE_NAME = "InstanceDetails.csv";

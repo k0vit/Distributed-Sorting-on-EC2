@@ -30,8 +30,6 @@ public class ClusterCreator {
 	private ClusterParams params;
 	private AmazonEC2Client amazonEC2Client;
 	private final static Logger LOGGER = Main.logger;
-	private final String keyName = "a9key";
-	private final String securityGrpName = "a9securitygrp";
 
 	public ClusterCreator(ClusterParams params) {
 		this.params = params;
@@ -48,12 +46,12 @@ public class ClusterCreator {
 			.withInstanceType(params.getInstanceFlavor())
 			.withMinCount(1)
 			.withMaxCount(params.getNoOfInstance() + 1) // +1 for master
-			.withKeyName(keyName)
-			.withSecurityGroups(securityGrpName);
+			.withKeyName(Main.keyName)
+			.withSecurityGroups(Main.securityGrpName);
 
 			LOGGER.log(Level.FINE, "Creating instance with parameters " + 
 					params.getBaseImageName() + ", " + params.getInstanceFlavor() + ", " + params.getNoOfInstance()
-					+ ", " + keyName);
+					+ ", " + Main.keyName);
 			RunInstancesResult result = amazonEC2Client.runInstances(runInstancesRequest);
 			writeInstanceDetails(result.getReservation().getReservationId());
 
@@ -119,7 +117,7 @@ public class ClusterCreator {
 
 	private void createKey() {
 		CreateKeyPairRequest createKeyPairRequest = new CreateKeyPairRequest();
-		createKeyPairRequest.withKeyName(keyName);
+		createKeyPairRequest.withKeyName(Main.keyName);
 		CreateKeyPairResult createKeyPairResult = amazonEC2Client.createKeyPair(createKeyPairRequest);
 		KeyPair keyPair = createKeyPairResult.getKeyPair();
 		saveToFile(keyPair.getKeyMaterial());
@@ -147,12 +145,12 @@ public class ClusterCreator {
 	private void createSecurityGroup() {
 		try {
 			CreateSecurityGroupRequest csgr = new CreateSecurityGroupRequest();
-			csgr.withGroupName(securityGrpName).withDescription("a9 security grp");
+			csgr.withGroupName(Main.securityGrpName).withDescription("a9 security grp");
 			amazonEC2Client.createSecurityGroup(csgr);
 			LOGGER.log(Level.FINE, "Created security grp with name a9SecurityGrp");
 
 			AuthorizeSecurityGroupIngressRequest ingressRequest = new AuthorizeSecurityGroupIngressRequest();
-			ingressRequest.withGroupName(securityGrpName).withIpPermissions(getIpPermissions());
+			ingressRequest.withGroupName(Main.securityGrpName).withIpPermissions(getIpPermissions());
 			amazonEC2Client.authorizeSecurityGroupIngress(ingressRequest);
 			LOGGER.log(Level.FINE, "Setting ingress rule allowing any ip address for all tcp flow");
 		} 

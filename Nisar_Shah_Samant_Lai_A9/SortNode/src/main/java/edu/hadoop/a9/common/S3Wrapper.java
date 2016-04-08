@@ -4,7 +4,6 @@ import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStream;
-import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.logging.Logger;
@@ -68,6 +67,8 @@ public class S3Wrapper {
 		log.info(String.format("[%s] Downloaded file with Bucket Name: %s Key: %s ", filename, bucketName, key));
 		log.info("CURRENT USER DIRECTORY: " + System.getProperty("user.dir"));
 		tx.download(bucketName, key, new File(filename));
+		File f = new File(System.getProperty("user.dir") + File.separator + filename);
+		while (!f.exists()) { }
 		return filename;
 	}
 
@@ -113,7 +114,7 @@ public class S3Wrapper {
 	}
 
 	public String downloadAndStoreFileInLocal(String fileString, BasicAWSCredentials awsCredentials, String inputS3Path) {
-		String s3FullPath = Paths.get(inputS3Path, fileString).toString();
+		String s3FullPath = inputS3Path + "/" + fileString;
 		log.info(String.format("[%s] Downloading from s3 full path: %s", fileString, s3FullPath));
 		readOutputFromS3(s3FullPath, awsCredentials, fileString);
 		return fileString;

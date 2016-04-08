@@ -271,6 +271,7 @@ public class SortNode {
 	private static void readFileAndSetProps(String configFileName) {
 		FileReader fr;
 		try {
+			log.info(String.format("Reading config file from path: %s", System.getProperty("user.dir") + File.separator + configFileName));
 			fr = new FileReader(System.getProperty("user.dir") + File.separator + configFileName);
 
 			BufferedReader br = new BufferedReader(fr);

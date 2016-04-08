@@ -74,6 +74,7 @@ public class SortNode {
 		String configFilePath = args[2];
 		accessKey = args[3];
 		secretKey = args[4];
+		String configFileName = configFilePath.substring(configFilePath.lastIndexOf('/' + 1));
 
 		log.info("Application Initialized");
 
@@ -85,7 +86,7 @@ public class SortNode {
 			S3Wrapper wrapper = new S3Wrapper(s3client);
 
 			// This downloads the config file on the local directory.
-			String configFileName = wrapper.readOutputFromS3(configFilePath, awsCredentials);
+			configFileName = wrapper.readOutputFromS3(configFilePath, awsCredentials, configFileName);
 			log.info("Config file name: " + configFileName);
 			readFileAndSetProps(configFileName);
 
@@ -294,7 +295,8 @@ public class SortNode {
 				// Receive request from client for the files which need to be
 				// taken care of
 				clientIp = request.ip();
-				log.info("Received files to be handled from Client IP: " + clientIp);
+				log.info("Received files to be handled from Client IP: " + clientIp + " Port: " + request.port());
+				log.info("Received files: " + request.body());
 				response.status(200);
 				response.body("SUCCESS");
 				String fileString = request.body();

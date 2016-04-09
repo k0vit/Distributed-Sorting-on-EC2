@@ -79,12 +79,12 @@ public class Task implements Runnable {
 			mainObject.put("samples", array);
 			return mainObject.toJSONString();
 		}
+		String line = null;
 		try {
 			int samplesTaken = 0;
 			int totalSamplesToTake = TOTAL_DATA_SAMPLES;
 			//Ignore first line which is the header.
 			br.readLine();
-			String line = null;
 			while ((line = br.readLine()) != null) {
 				String[] parts = line.split("\\,");
 				if ((parts.length < 9) || parts[BULBTEMP_INDEX].equals("-")) {
@@ -103,7 +103,7 @@ public class Task implements Runnable {
 			}
 			br.close();
 		} catch (Exception e) {
-			log.severe("Exception while reading data: " + e.getMessage());
+			log.severe("Exception while reading data: " + line + ". Reason:"+ e.getMessage());
 			mainObject.put("samples", array);
 			return mainObject.toJSONString();
 		}

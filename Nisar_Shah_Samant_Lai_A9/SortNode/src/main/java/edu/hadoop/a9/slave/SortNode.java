@@ -12,10 +12,10 @@ import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.net.InetAddress;
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.Executors;
@@ -49,11 +49,11 @@ public class SortNode {
 	static Double MAXIMUM_PARTITION;
 	static String INSTANCE_IP;
 	static long INSTANCE_ID;
-	static ArrayList<String[]> unsortedData = new ArrayList<String[]>();
+	static List<String[]> unsortedData = new LinkedList<String[]>();
 	// To avoid synchronization issues create one more list of records.
-	static List<String[]> dataFromOtherNodes = Collections.synchronizedList(new ArrayList<String[]>());
+	static List<String[]> dataFromOtherNodes = Collections.synchronizedList(new LinkedList<String[]>());
 	public static final String PORT_FOR_COMM = "4567";
-	public static final int NUMBER_OF_REQUESTS_STORED = 30000;
+	public static final int NUMBER_OF_REQUESTS_STORED = 200000;
 	public static final String PARTITION_URL = "partitions";
 	public static final String END_URL = "end";
 	public static final String END_OF_SORTING_URL = "signals";

@@ -16,6 +16,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadPoolExecutor;
@@ -45,10 +46,10 @@ public class SortNode {
 	static Double MINIMUM_PARTITION;
 	static Double MAXIMUM_PARTITION;
 	static String INSTANCE_IP;
-	static int INSTANCE_ID;
+	static long INSTANCE_ID;
 	static ArrayList<String[]> unsortedData = new ArrayList<String[]>();
 	// To avoid synchronization issues create one more list of records.
-	static ArrayList<String[]> dataFromOtherNodes = new ArrayList<String[]>();
+	static List<String[]> dataFromOtherNodes = Collections.synchronizedList(new ArrayList<String[]>());
 	public static final String PORT_FOR_COMM = "4567";
 	public static final int NUMBER_OF_REQUESTS_STORED = 20000;
 	public static final String PARTITION_URL = "partitions";
@@ -171,17 +172,16 @@ public class SortNode {
 				Double minimumPartition = (Double) jsonObject.get("min");
 				Double maximumPartition = (Double) jsonObject.get("max");
 				String nodeIp = (String) jsonObject.get("nodeIp");
-				String instanceId = (String) jsonObject.get("instanceId");
-				if (instanceId.equals("NOWORK")) {
+				Long instanceId = (Long) jsonObject.get("instanceId");
+				if (String.valueOf(instanceId).equals("NOWORK")) {
 					NodeCommWrapper.SendData(nodeIp, PORT_FOR_COMM, END_URL, "EOF");
 					log.info("Sent EOF as no partition is assigned to the sort node");
 					return response.body().toString();
 				} else {
-					int instanceIdInt = Integer.parseInt(instanceId);
 					if (nodeIp == INSTANCE_IP) {
 						MAXIMUM_PARTITION = maximumPartition;
 						MINIMUM_PARTITION = minimumPartition;
-						INSTANCE_ID = instanceIdInt;
+						INSTANCE_ID = instanceId;
 						log.info(String.format("Sort Node Info: InstanceId: %s maxPartition: %s minPartition: %s",
 								INSTANCE_ID, MAXIMUM_PARTITION, MINIMUM_PARTITION));
 					}

@@ -83,6 +83,7 @@ public class Client {
 			request_count++;
 			LOG.info("Recieved request from " + req.ip() + " on port " + req.port());
 			LOG.info("total request from files " + request_count);
+			LOG.info("SAMPLES RECEIVED: " + req.body().toString());
 			samples.add(new Distribution(req.body().toString()));
 			if (request_count == FILE_NUM) {
 				LOG.info("request count = to file number. Posting partitions");

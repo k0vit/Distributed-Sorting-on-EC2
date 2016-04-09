@@ -3,8 +3,6 @@ package edu.hadoop.a9.slave;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.InputStream;
-import java.io.PrintWriter;
-import java.io.StringWriter;
 import java.util.Random;
 import java.util.Scanner;
 import java.util.logging.Logger;
@@ -24,7 +22,7 @@ public class Task implements Runnable {
 	private static final Logger log = Logger.getLogger(Task.class.getName());
 	private static final int BULBTEMP_INDEX = 8;
 	// Using 10% of 300000 data for sampling
-	private static final int TOTAL_DATA_SAMPLES = 30000;
+	private static final int TOTAL_DATA_SAMPLES = 500;
 	private final String clientIp;
 	private static final String CLIENT_PORT = "4567";
 	private static final String SAMPLE_URL = "samples";
@@ -45,13 +43,12 @@ public class Task implements Runnable {
 			String fileName = wrapper.downloadAndStoreFileInLocal(filename, awsCredentials, inputS3Path);
 			log.info(String.format("[%s] Downloaded File successfully from S3", fileName));
 			String jsonDist = GetDistribution(fileName);
-			if (jsonDist != null)
-				NodeCommWrapper.SendData(clientIp, CLIENT_PORT, SAMPLE_URL, jsonDist);
+			if (jsonDist != null) {
+				log.info(String.format("Sending samples for file: %s", fileName));
+				NodeCommWrapper.SendData(clientIp, CLIENT_PORT, SAMPLE_URL, jsonDist, fileName);
+			}
 		} catch (Exception exp) {
-			StringWriter sw = new StringWriter();
-			exp.printStackTrace(new PrintWriter(sw));
 			log.severe(String.format("Error sending sampled distribution : %s", exp.getMessage()));
-			log.severe(sw.toString());
 		}
 	}
 
@@ -60,39 +57,42 @@ public class Task implements Runnable {
 		File file = new File(System.getProperty("user.dir"), fileName);
 		log.info(String.format("[%s] Get distribution for file: %s", fileName, file.getAbsolutePath()));
 		JSONObject mainObject = new JSONObject();
+		Random rnd = new Random();
+		JSONArray array = new JSONArray();
+		Scanner in = null;
 		try {
 			InputStream is = new FileInputStream(file);
 			is = new GZIPInputStream(is);
-			Scanner in = new Scanner(is);
-			int samplesTaken = 0;
-			int totalSamplesToTake = TOTAL_DATA_SAMPLES;
-			Random rnd = new Random();
-			JSONArray array = new JSONArray();
-			in.nextLine();
-			while (in.hasNextLine()) {
-				String line = in.nextLine();
-				String[] parts = line.split("\\,");
-				if ((parts.length < 9) || parts[BULBTEMP_INDEX].equals("-")) {
-					continue;
-				}
-				try {
-					double temp = Double.parseDouble(parts[BULBTEMP_INDEX]);
-					if (samplesTaken < totalSamplesToTake && rnd.nextBoolean()) {
-						array.add(temp);
-					}
-				} catch (Exception e) {
-					log.severe("Exception: " + e.getMessage() + " parsing data");
-					continue;
-				}
-			}
-			in.close();
-			log.info(String.format("File: %s is now sampled.", fileName));
-			mainObject.put("samples", array);
+			in = new Scanner(is);
 		} catch (Exception e) {
-			log.severe("Exception for reading File: " + file.getAbsolutePath() + " " + e.getMessage());
+			log.severe("Excption while reading data: " + e.getMessage());
+			mainObject.put("samples", array);
+			return mainObject.toJSONString();
 		}
-
+		int samplesTaken = 0;
+		int totalSamplesToTake = TOTAL_DATA_SAMPLES;
+		in.nextLine();
+		while (in.hasNextLine()) {
+			String line = in.nextLine();
+			String[] parts = line.split("\\,");
+			if ((parts.length < 9) || parts[BULBTEMP_INDEX].equals("-")) {
+				continue;
+			}
+			try {
+				double temp = Double.parseDouble(parts[BULBTEMP_INDEX]);
+				if (samplesTaken < totalSamplesToTake && rnd.nextBoolean()) {
+					array.add(temp);
+				}
+			} catch (Exception e) {
+				log.severe("Exception parsing data: " + e.getMessage());
+				continue;
+			}
+		}
+		in.close();
+		log.info(String.format("File: %s is now sampled.", fileName));
+		mainObject.put("samples", array);
 		return mainObject.toJSONString();
+
 	}
 
 }

@@ -46,7 +46,6 @@ public class Distribution {
 			}
 			LOG.info("Received samples " + samples.size());
 		} catch (Exception e) {
-			// TODO remove str
 			LOG.log(Level.SEVERE, "Failed parsing sample : " + str +  ". Reason:" + e.getMessage());
 			StringWriter errors = new StringWriter();
 			e.printStackTrace(new PrintWriter(errors));

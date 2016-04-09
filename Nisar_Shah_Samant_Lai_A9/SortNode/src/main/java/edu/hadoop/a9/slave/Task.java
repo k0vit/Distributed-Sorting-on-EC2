@@ -111,7 +111,7 @@ public class Task implements Runnable {
 		log.info(String.format("File: %s is now sampled.", fileName));
 //		mainObject.put("samples", array);
 //		return mainObject.toJSONString();
-		commaSeparatedString.substring(0, commaSeparatedString.length() - 1);
+		commaSeparatedString.deleteCharAt(commaSeparatedString.length() - 1);
 		return commaSeparatedString.toString();
 	}
 }

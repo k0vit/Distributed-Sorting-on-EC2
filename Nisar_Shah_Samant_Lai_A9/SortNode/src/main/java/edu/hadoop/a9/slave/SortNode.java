@@ -12,6 +12,7 @@ import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.net.InetAddress;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
@@ -282,6 +283,8 @@ public class SortNode {
 					NodeCommWrapper.SendData(clientIp, PORT_FOR_COMM, END_OF_SORTING_URL, "SORTED");
 				}
 			}
+			response.status(200);
+			response.body("SUCCESS");
 			return response.body().toString();
 		});
 
@@ -422,7 +425,15 @@ public class SortNode {
 		Collections.sort(unsortedData, new Comparator<String[]>() {
 			@Override
 			public int compare(String[] o1, String[] o2) {
-				return (o1[8].compareTo(o2[8]));
+				if (o1.length < 9 || o2.length < 9) {
+					log.info("String length o1: " + o1.length);
+					log.info("String length o2: " + o2.length);
+					log.severe("o1: " + Arrays.toString(o1));
+					log.severe("o2: " + Arrays.toString(o2));
+					return 0;
+				} else {
+					return (o1[DRY_BULB_COL].compareTo(o2[DRY_BULB_COL]));
+				}
 			}
 		});
 		log.info("Sorting sort node data finished !");

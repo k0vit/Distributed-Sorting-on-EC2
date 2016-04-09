@@ -9,6 +9,7 @@ import java.util.logging.Logger;
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
+import org.json.simple.parser.ParseException;
 
 /**
  * 
@@ -37,13 +38,14 @@ public class Distribution {
 
 	public Distribution(String str) {
 		try {
+			LOG.info("Got samples: " + str);
 			JSONObject obj = (JSONObject) parser.parse(str);
 			JSONArray arr = (JSONArray) obj.get("samples");
-			samples = new ArrayList<>();
+			samples = new ArrayList<Double>();
 			for (Object num : arr.toArray()) {
 				samples.add((Double) num);
 			}
-		} catch (Exception e) {
+		} catch (ParseException e) {
 			LOG.log(Level.SEVERE, e.getMessage());
 		}
 	}

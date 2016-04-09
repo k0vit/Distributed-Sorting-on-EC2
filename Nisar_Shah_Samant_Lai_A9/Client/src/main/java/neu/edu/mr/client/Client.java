@@ -290,7 +290,7 @@ public class Client {
 					job.put("max", end);
 
 				job.put("nodeIp", slaves.get(node));
-				job.put("instanceId", node);
+				job.put("instanceId", node + "");
 				arr.add(job);
 				i += range;
 				pre = end;

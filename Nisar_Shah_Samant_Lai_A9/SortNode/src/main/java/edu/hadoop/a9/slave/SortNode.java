@@ -298,14 +298,9 @@ public class SortNode {
 			return response.body().toString();
 		});
 		
-		int count = 0;
 		while (!partitionReceived) {
-			if (count == 4) {
-				break;
-			}
 			try {
-				Thread.sleep(5000);
-				count++;
+				Thread.sleep(20000);
 				log.info("...");
 			} catch (InterruptedException e) {
 				log.info("Thread interrupted");

@@ -53,7 +53,7 @@ public class SortNode {
 	// To avoid synchronization issues create one more list of records.
 	static List<String[]> dataFromOtherNodes = Collections.synchronizedList(new ArrayList<String[]>());
 	public static final String PORT_FOR_COMM = "4567";
-	public static final int NUMBER_OF_REQUESTS_STORED = 20000;
+	public static final int NUMBER_OF_REQUESTS_STORED = 30000;
 	public static final String PARTITION_URL = "partitions";
 	public static final String END_URL = "end";
 	public static final String END_OF_SORTING_URL = "signals";

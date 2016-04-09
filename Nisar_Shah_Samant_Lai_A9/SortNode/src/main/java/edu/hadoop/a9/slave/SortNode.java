@@ -211,10 +211,10 @@ public class SortNode {
 									if (ipToCountOfRequests.get(instanceIp) < NUMBER_OF_REQUESTS_STORED) {
 										ipToCountOfRequests.put(instanceIp, ipToCountOfRequests.get(instanceIp) + 1);
 										ipToActualRequestString.put(instanceIp,
-												ipToActualRequestString.get(instanceIp).append(line + ":"));
+												ipToActualRequestString.get(instanceIp).append(Arrays.toString(line) + ":"));
 									} else {
 										ipToActualRequestString.put(instanceIp,
-												ipToActualRequestString.get(instanceIp).append(line + ":"));
+												ipToActualRequestString.get(instanceIp).append(Arrays.toString(line) + ":"));
 										sendRequestToSortNode(instanceIp, ipToCountOfRequests, ipToActualRequestString);
 									}
 								}

@@ -26,7 +26,7 @@ public class NodeCommWrapper {
 		} catch (UnirestException e) {
 			log.severe("[" + fileName + "] Exception sending post request: " + e.getMessage());
 			log.severe("[" + fileName + "] RETRY sending file");
-			SendData(clientIp, port, requestUrl, data);
+			SendData(clientIp, port, requestUrl, data, fileName);
 		}
 	}
 	

@@ -205,7 +205,7 @@ public class SortNode {
 							if (dryBulbTemp >= ipToMinMap.get(instanceIp)
 									&& dryBulbTemp <= ipToMaxMap.get(instanceIp)) {
 								if (instanceIp.equals(INSTANCE_IP)) {
-//									unsortedData.add(line);
+									unsortedData.add(line);
 								} else {
 									if (ipToCountOfRequests.get(instanceIp) < NUMBER_OF_REQUESTS_STORED) {
 										ipToCountOfRequests.put(instanceIp, ipToCountOfRequests.get(instanceIp) + 1);

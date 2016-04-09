@@ -21,7 +21,7 @@ public class NodeCommWrapper {
 		log.info(String.format("[%s] Sending data to %s", fileName, address));
 //		log.info("Sending data: " + data);
 		try {
-			Unirest.setTimeouts(10000, 0);
+			Unirest.setTimeouts(10000, 120000);
 			Unirest.post(address).body(data).asString();
 		} catch (UnirestException e) {
 			log.severe("[" + fileName + "] Exception sending post request: " + e.getMessage());

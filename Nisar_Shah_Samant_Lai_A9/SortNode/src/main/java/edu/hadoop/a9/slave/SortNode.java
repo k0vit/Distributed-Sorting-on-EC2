@@ -257,6 +257,7 @@ public class SortNode {
 			for (String record : records) {
 				dataFromOtherNodes.add(record.split(","));
 			}
+			log.info("Data from other nodes has size: " + dataFromOtherNodes.size());
 			response.status(200);
 			response.body("Awesome");
 			return response.body().toString();

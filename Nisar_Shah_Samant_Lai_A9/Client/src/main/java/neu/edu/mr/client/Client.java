@@ -44,6 +44,7 @@ public class Client {
 	private static List<Distribution> samples = Collections.synchronizedList(new ArrayList<Distribution>());
 	protected static ArrayList<String> slaves;
 	private static S3Service s3;
+	private static int SLAVE_WITH_NO_WORK = 0;
 
 	public static void main(String[] args) {
 		if (args.length != 5) {
@@ -101,7 +102,7 @@ public class Client {
 			signal_count++;
 			LOG.log(Level.INFO, "Sort work done signal from: " + req.ip());
 			LOG.info("total signal count " + signal_count);
-			if (signal_count == SLAVE_NUM) {
+			if (signal_count == SLAVE_NUM - SLAVE_WITH_NO_WORK) {
 				long totalTime = System.currentTimeMillis() - startTime;
 				System.out.println("Sort Job Done");
 				System.out.println("Total Time: " + totalTime / 1000 + " Seconds");
@@ -289,7 +290,7 @@ public class Client {
 					job.put("max", end);
 
 				job.put("nodeIp", slaves.get(node));
-				job.put("instanceId", node);
+				job.put("instanceId", node + "");
 				arr.add(job);
 				i += range;
 				pre = end;
@@ -307,7 +308,9 @@ public class Client {
 				nullJob.put("instanceId", NULL_JOB_SIGNAL);
 				arr.add(nullJob);
 				node++;
+				SLAVE_WITH_NO_WORK++;
 			}
+			LOG.info("There are " + SLAVE_WITH_NO_WORK + " slaves with no work");
 		} catch (JSONException e) {
 			LOG.log(Level.SEVERE, e.getMessage());
 			LOG.log(Level.SEVERE, "failed to generate global distribution");

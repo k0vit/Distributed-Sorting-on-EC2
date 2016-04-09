@@ -2,6 +2,8 @@ package neu.edu.mr.client;
 
 import java.io.File;
 import java.io.FileReader;
+import java.io.PrintWriter;
+import java.io.StringWriter;
 import java.util.ArrayList;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -46,7 +48,11 @@ public class Distribution {
 			}
 			LOG.info("Received samples " + samples.size());
 		} catch (ParseException e) {
-			LOG.log(Level.SEVERE, e.getMessage());
+			// TODO remove str
+			LOG.log(Level.SEVERE, "Failed parsing sample : " + str + e.getMessage());
+			StringWriter errors = new StringWriter();
+			e.printStackTrace(new PrintWriter(errors));
+			LOG.severe("Stacktrace: " + errors.toString());
 		}
 	}
 

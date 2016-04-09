@@ -103,7 +103,7 @@ public class S3Wrapper {
 		return path.substring("s3://".length());
 	}
 
-	public boolean uploadDataToS3(String outputS3Path, ArrayList<String[]> nowSortedData, Long instanceId) {
+	public boolean uploadDataToS3(String outputS3Path, ArrayList<String[]> nowSortedData, int instanceId) {
 		String fileName = "part-r-" + instanceId + ".csv";
 		try {
 			CSVWriter writer = new CSVWriter(new FileWriter(fileName));

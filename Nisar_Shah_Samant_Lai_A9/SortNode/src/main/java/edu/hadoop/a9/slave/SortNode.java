@@ -40,12 +40,12 @@ public class SortNode {
 	static String clientIp;
 	public static final int DRY_BULB_COL = 8;
 	static int TOTAL_NO_OF_SORT_NODES;
-	static Map<String, Long> ipToMaxMap = new HashMap<String, Long>();
-	static Map<String, Long> ipToMinMap = new HashMap<String, Long>();
-	static long MINIMUM_PARTITION;
-	static long MAXIMUM_PARTITION;
+	static Map<String, Double> ipToMaxMap = new HashMap<String, Double>();
+	static Map<String, Double> ipToMinMap = new HashMap<String, Double>();
+	static Double MINIMUM_PARTITION;
+	static Double MAXIMUM_PARTITION;
 	static String INSTANCE_IP;
-	static long INSTANCE_ID;
+	static int INSTANCE_ID;
 	static ArrayList<String[]> unsortedData = new ArrayList<String[]>();
 	// To avoid synchronization issues create one more list of records.
 	static ArrayList<String[]> dataFromOtherNodes = new ArrayList<String[]>();
@@ -161,14 +161,15 @@ public class SortNode {
 
 		post("/partitions", (request, response) -> {
 			log.info("Received partitions from the client!");
+			log.info("Partition is as follows: " + request.body());
 			response.status(200);
 			response.body("SUCCESS");
 			JSONObject entireJSON = (JSONObject) parser.parse(request.body().toString());
 			JSONArray array = (JSONArray) entireJSON.get("partitions");
 			for (int i = 0; i < array.size(); i++) {
 				JSONObject jsonObject = (JSONObject) array.get(i);
-				Long minimumPartition = (Long) jsonObject.get("min");
-				Long maximumPartition = (Long) jsonObject.get("max");
+				Double minimumPartition = (Double) jsonObject.get("min");
+				Double maximumPartition = (Double) jsonObject.get("max");
 				String nodeIp = (String) jsonObject.get("nodeIp");
 				String instanceId = (String) jsonObject.get("instanceId");
 				if (instanceId.equals("NOWORK")) {
@@ -176,11 +177,11 @@ public class SortNode {
 					log.info("Sent EOF as no partition is assigned to the sort node");
 					return response.body().toString();
 				} else {
-					Long instanceIdLong = Long.parseLong(instanceId);
+					int instanceIdInt = Integer.parseInt(instanceId);
 					if (nodeIp == INSTANCE_IP) {
 						MAXIMUM_PARTITION = maximumPartition;
 						MINIMUM_PARTITION = minimumPartition;
-						INSTANCE_ID = instanceIdLong;
+						INSTANCE_ID = instanceIdInt;
 						log.info(String.format("Sort Node Info: InstanceId: %s maxPartition: %s minPartition: %s",
 								INSTANCE_ID, MAXIMUM_PARTITION, MINIMUM_PARTITION));
 					}

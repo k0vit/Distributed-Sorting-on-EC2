@@ -20,12 +20,14 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Logger;
 import java.util.zip.GZIPInputStream;
 
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
+import org.json.simple.parser.ParseException;
 
 import com.amazonaws.auth.BasicAWSCredentials;
 import com.amazonaws.services.s3.AmazonS3Client;
@@ -55,7 +57,11 @@ public class SortNode {
 	public static final String PARTITION_URL = "partitions";
 	public static final String END_URL = "end";
 	public static final String END_OF_SORTING_URL = "signals";
-	static int NO_OF_SORT_NODES_WHERE_DATA_IS_RECEIVED = 0;
+	public static final String RECORDS_URL = "records";
+	static AtomicInteger NO_OF_SORT_NODES_WHERE_DATA_IS_RECEIVED = new AtomicInteger(0);
+	static String jsonPartitions;
+	static boolean partitionReceived = false;
+	static int NO_OF_NODES_WITH_WORK = 0;
 
 	public static void main(String[] args) {
 		if (args.length != 5) {
@@ -137,8 +143,8 @@ public class SortNode {
 	 */
 	private static void checkIfAllDataReceived(String outputS3Path, S3Wrapper wrapper) {
 		post("/end", (request, response) -> {
-			NO_OF_SORT_NODES_WHERE_DATA_IS_RECEIVED++;
-			if (NO_OF_SORT_NODES_WHERE_DATA_IS_RECEIVED == TOTAL_NO_OF_SORT_NODES - 1) {
+			NO_OF_SORT_NODES_WHERE_DATA_IS_RECEIVED.getAndIncrement();
+			if (NO_OF_SORT_NODES_WHERE_DATA_IS_RECEIVED.get() == NO_OF_NODES_WITH_WORK) {
 				log.info("Received data from all sort nodes");
 				log.info("Start sorting data....");
 				sortYourOwnData();
@@ -165,33 +171,54 @@ public class SortNode {
 			log.info("Partition is as follows: " + request.body());
 			response.status(200);
 			response.body("SUCCESS");
-			JSONObject entireJSON = (JSONObject) parser.parse(request.body().toString());
-			JSONArray array = (JSONArray) entireJSON.get("partitions");
-			for (int i = 0; i < array.size(); i++) {
-				JSONObject jsonObject = (JSONObject) array.get(i);
-				Double minimumPartition = (Double) jsonObject.get("min");
-				Double maximumPartition = (Double) jsonObject.get("max");
-				String nodeIp = (String) jsonObject.get("nodeIp");
-				Long instanceId = (Long) jsonObject.get("instanceId");
-				if (String.valueOf(instanceId).equals("NOWORK")) {
-					NodeCommWrapper.SendData(nodeIp, PORT_FOR_COMM, END_URL, "EOF");
-					log.info("Sent EOF as no partition is assigned to the sort node");
-					return response.body().toString();
-				} else {
-					if (nodeIp == INSTANCE_IP) {
-						MAXIMUM_PARTITION = maximumPartition;
-						MINIMUM_PARTITION = minimumPartition;
-						INSTANCE_ID = instanceId;
-						log.info(String.format("Sort Node Info: InstanceId: %s maxPartition: %s minPartition: %s",
-								INSTANCE_ID, MAXIMUM_PARTITION, MINIMUM_PARTITION));
-					}
-					ipToMaxMap.put(nodeIp, maximumPartition);
-					ipToMinMap.put(nodeIp, minimumPartition);
-				}
-			}
+			jsonPartitions = request.body();
+			partitionReceived = true;
+			return response.body().toString();
+		});
+		
+		while (!partitionReceived) {}
 
-			// Read local data line by line
-			File[] dataFolder = listDirectory(System.getProperty("user.dir"));
+		JSONObject entireJSON = null;
+		try {
+			entireJSON = (JSONObject) parser.parse(jsonPartitions);
+		} catch (ParseException e1) {
+			log.severe("Failed while parsing partition: " + jsonPartitions);
+			StringWriter errors = new StringWriter();
+			e1.printStackTrace(new PrintWriter(errors));
+			log.severe("Stacktrace: " + errors.toString());
+		}
+		JSONArray array = (JSONArray) entireJSON.get("partitions");
+		for (int i = 0; i < array.size(); i++) {
+			JSONObject jsonObject = (JSONObject) array.get(i);
+			Double minimumPartition = (Double) jsonObject.get("min");
+			Double maximumPartition = (Double) jsonObject.get("max");
+			String nodeIp = (String) jsonObject.get("nodeIp");
+			String instanceId = (String) jsonObject.get("instanceId");
+			if (instanceId.equals("NOWORK")) {
+				if (nodeIp == INSTANCE_IP) {
+					System.exit(0);
+				} else {
+					log.info("nodeIp: " + nodeIp + " with NOWORK");
+				}
+			} else {
+				if (nodeIp == INSTANCE_IP) {
+					MAXIMUM_PARTITION = maximumPartition;
+					MINIMUM_PARTITION = minimumPartition;
+					INSTANCE_ID = Long.valueOf(instanceId);
+					log.info(String.format("Sort Node Info: InstanceId: %s maxPartition: %s minPartition: %s",
+							INSTANCE_ID, MAXIMUM_PARTITION, MINIMUM_PARTITION));
+				}
+				NO_OF_NODES_WITH_WORK++;
+				ipToMaxMap.put(nodeIp, maximumPartition);
+				ipToMinMap.put(nodeIp, minimumPartition);
+				ipToCountOfRequests.put(nodeIp, 0);
+				ipToActualRequestString.put(nodeIp, new StringBuilder());
+			}
+		}
+
+		// Read local data line by line
+		File[] dataFolder = listDirectory(System.getProperty("user.dir"));
+		try {
 			for (File file : dataFolder) {
 				if (!checkFileExtensionsIsGz(file.getName()))
 					continue;
@@ -206,51 +233,53 @@ public class SortNode {
 						double dryBulbTemp;
 						try {
 							dryBulbTemp = Double.parseDouble(line[DRY_BULB_COL]);
-							// Check which partition it lies within and send to
-							// the sortNode required
-							for (String instanceIp : ipToMaxMap.keySet()) {
-								if (dryBulbTemp >= ipToMinMap.get(instanceIp)
-										&& dryBulbTemp <= ipToMaxMap.get(instanceIp)) {
-									if (instanceIp == INSTANCE_IP) {
-										unsortedData.add(line);
-									} else {
-										if (ipToCountOfRequests.get(instanceIp) < NUMBER_OF_REQUESTS_STORED) {
-											ipToCountOfRequests.put(instanceIp,
-													ipToCountOfRequests.get(instanceIp) + 1);
-											ipToActualRequestString.put(instanceIp,
-													ipToActualRequestString.get(instanceIp).append(":" + line));
-										} else {
-											sendRequestToSortNode(instanceIp, ipToCountOfRequests,
-													ipToActualRequestString);
-										}
-									}
-									break;
-								}
-							}
 						} catch (Exception e) {
-							log.severe("Exception: " + e.getMessage() + " parsing data");
+							log.info("Failed to parse value to Double: " + line[DRY_BULB_COL]);
 							continue;
 						}
-
+						// Check which partition it lies within and send to
+						// the sortNode required
+						for (String instanceIp : ipToMaxMap.keySet()) {
+							if (dryBulbTemp >= ipToMinMap.get(instanceIp)
+									&& dryBulbTemp <= ipToMaxMap.get(instanceIp)) {
+								if (instanceIp.equals(INSTANCE_IP)) {
+									unsortedData.add(line);
+								} else {
+									if (ipToCountOfRequests.get(instanceIp) < NUMBER_OF_REQUESTS_STORED) {
+										ipToCountOfRequests.put(instanceIp, ipToCountOfRequests.get(instanceIp) + 1);
+										ipToActualRequestString.put(instanceIp,
+												ipToActualRequestString.get(instanceIp).append(line + ":"));
+									} else {
+										ipToActualRequestString.put(instanceIp,
+												ipToActualRequestString.get(instanceIp).append(line + ":"));
+										sendRequestToSortNode(instanceIp, ipToCountOfRequests, ipToActualRequestString);
+									}
+								}
+								break;
+							}
+						}
 					}
 				}
 				reader.close();
 				br.close();
-
-				for (String ipAddress : ipToCountOfRequests.keySet()) {
-					log.info("Flush out remaining data to Sort Node: " + ipAddress);
-					sendRequestToSortNode(ipAddress, ipToCountOfRequests, ipToActualRequestString);
-					// SEND EOF to signal end of file
-					NodeCommWrapper.SendData(ipAddress, PORT_FOR_COMM, END_URL, "EOF");
-				}
-
 			}
+		} catch (Exception e) {
+			log.severe("Failed while parsing value: " + e.getLocalizedMessage());
+			StringWriter errors = new StringWriter();
+			e.printStackTrace(new PrintWriter(errors));
+			log.severe("Stacktrace: " + errors.toString());
+		}
 
-			return response.body().toString();
-		});
+		for (String ipAddress : ipToCountOfRequests.keySet()) {
+			log.info("Flush out remaining data to Sort Node: " + ipAddress);
+			if (ipToCountOfRequests.get(ipAddress) > 0) {
+				sendRequestToSortNode(ipAddress, ipToCountOfRequests, ipToActualRequestString);
+			}
+			// SEND EOF to signal end of file
+			NodeCommWrapper.SendData(ipAddress, PORT_FOR_COMM, END_URL, "EOF");
+		}
 
 	}
-
 	/**
 	 * 
 	 * @param instanceIp
@@ -262,8 +291,8 @@ public class SortNode {
 		StringBuilder sb = ipToActualRequestString.get(instanceIp);
 		ipToActualRequestString.put(instanceIp, new StringBuilder());
 		ipToCountOfRequests.put(instanceIp, 0);
-		String recordList = sb.toString();
-		NodeCommWrapper.SendData(instanceIp, PORT_FOR_COMM, PARTITION_URL, recordList);
+		String recordList = sb.deleteCharAt(sb.length()-1).toString();
+		NodeCommWrapper.SendData(instanceIp, PORT_FOR_COMM, RECORDS_URL, recordList);
 	}
 
 	/**

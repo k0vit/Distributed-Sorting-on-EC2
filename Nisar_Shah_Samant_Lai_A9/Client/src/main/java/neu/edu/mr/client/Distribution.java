@@ -43,6 +43,7 @@ public class Distribution {
 			for (Object num : arr.toArray()) {
 				samples.add((Double) num);
 			}
+			LOG.info("Received samples " + samples.size());
 		} catch (Exception e) {
 			LOG.log(Level.SEVERE, e.getMessage());
 		}

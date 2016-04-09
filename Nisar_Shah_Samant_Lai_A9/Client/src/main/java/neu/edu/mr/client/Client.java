@@ -124,7 +124,7 @@ public class Client {
 				curatedFiles.add(onlyFileName);
 			}
 		}
-		
+
 		LOG.info("Listing s3 objects " + curatedFiles);
 		FILE_NUM = curatedFiles.size();
 		LOG.info("file size " + FILE_NUM);
@@ -132,12 +132,26 @@ public class Client {
 		for (int i = 0; i < SLAVE_NUM; i++) {
 			String slaveIp = slaves.get(i);
 			String filesShare = shares.get(i);
+			String req = "http://" + slaveIp + ":" + DEFAULT_PORT + FILES_URL;
 			try {
-				String req = "http://" + slaveIp + ":" + DEFAULT_PORT + FILES_URL;
 				Unirest.post(req).body(filesShare).asString();
 				LOG.info("Posting to " + req + "with body as " + filesShare);
 			} catch (Exception e) {
-				LOG.log(Level.SEVERE, "Failed to distribute files to slave: " + e.getMessage());
+				LOG.log(Level.SEVERE, "Failed to distribute files to slave " + req + ". Reason " + e.getMessage());
+				LOG.severe("Sleeping for 10 seconds to retry");
+				try {
+					Thread.sleep(10000);
+				} 
+				catch (Exception ex) {
+					LOG.severe("Failed to sleep " + ex.getMessage());
+				}
+				try {
+					LOG.severe("Retrying " + req);
+					Unirest.post(req).body(filesShare).asString();
+				} 
+				catch (Exception exx) {
+					LOG.severe("Failed to retry to post " + req);
+				}
 			}
 		}
 	}
@@ -295,7 +309,7 @@ public class Client {
 		obj.put("partitions", arr);
 		return obj;
 	}
-	
+
 	/**
 	 * Check file extension is .gz or not.
 	 * 

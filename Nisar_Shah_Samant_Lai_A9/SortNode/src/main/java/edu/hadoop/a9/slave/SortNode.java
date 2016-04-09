@@ -176,8 +176,22 @@ public class SortNode {
 			return response.body().toString();
 		});
 		
-		while (!partitionReceived) {}
+		int count = 0;
+		while (!partitionReceived) {
+			if (count == 4) {
+				break;
+			}
+			try {
+				Thread.sleep(5000);
+				count++;
+				log.info("...");
+			} catch (InterruptedException e) {
+				log.info("Thread interrupted");
+			}
+			
+		}
 
+		log.info("Out of while loop");
 		JSONObject entireJSON = null;
 		try {
 			entireJSON = (JSONObject) parser.parse(jsonPartitions);
@@ -222,6 +236,7 @@ public class SortNode {
 			for (File file : dataFolder) {
 				if (!checkFileExtensionsIsGz(file.getName()))
 					continue;
+				log.info(String.format("[%s] The file getting read: %s", INSTANCE_IP, file));
 				FileInputStream fis = new FileInputStream(file);
 				InputStream gzipStream = new GZIPInputStream(fis);
 				BufferedReader br = new BufferedReader(new InputStreamReader(gzipStream));

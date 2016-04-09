@@ -179,6 +179,7 @@ public class SortNode {
 		// Read local data line by line
 		File[] dataFolder = listDirectory(System.getProperty("user.dir"));
 		try {
+			int count = 0;
 			for (File file : dataFolder) {
 				if (!checkFileExtensionsIsGz(file.getName()))
 					continue;
@@ -223,6 +224,8 @@ public class SortNode {
 				}
 				reader.close();
 				br.close();
+				count++;
+				log.info("No of files processed: " + count);
 			}
 		} catch (Exception e) {
 			log.severe("Failed while parsing value: " + e.getLocalizedMessage());

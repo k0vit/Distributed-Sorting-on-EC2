@@ -11,7 +11,6 @@ import java.util.logging.Logger;
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
-import org.json.simple.parser.ParseException;
 
 /**
  * 
@@ -40,16 +39,15 @@ public class Distribution {
 
 	public Distribution(String str) {
 		try {
-			JSONObject obj = (JSONObject) parser.parse(str);
-			JSONArray arr = (JSONArray) obj.get("samples");
+			String[] samplesArr = str.split(",");
 			samples = new ArrayList<Double>();
-			for (Object num : arr.toArray()) {
-				samples.add((Double) num);
+			for (String num : samplesArr) {
+				samples.add(Double.parseDouble(num));
 			}
 			LOG.info("Received samples " + samples.size());
-		} catch (ParseException e) {
+		} catch (Exception e) {
 			// TODO remove str
-			LOG.log(Level.SEVERE, "Failed parsing sample : " + str + e.getMessage());
+			LOG.log(Level.SEVERE, "Failed parsing sample : " + str +  ". Reason:" + e.getMessage());
 			StringWriter errors = new StringWriter();
 			e.printStackTrace(new PrintWriter(errors));
 			LOG.severe("Stacktrace: " + errors.toString());

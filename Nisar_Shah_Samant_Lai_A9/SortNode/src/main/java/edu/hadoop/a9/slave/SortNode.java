@@ -54,7 +54,7 @@ public class SortNode {
 	// To avoid synchronization issues create one more list of records.
 	static List<String[]> dataFromOtherNodes = Collections.synchronizedList(new LinkedList<String[]>());
 	public static final String PORT_FOR_COMM = "4567";
-	public static final int NUMBER_OF_REQUESTS_STORED = 500000;
+	public static final int NUMBER_OF_REQUESTS_STORED = 2000;
 	public static final String PARTITION_URL = "partitions";
 	public static final String END_URL = "end";
 	public static final String END_OF_SORTING_URL = "signals";
@@ -112,7 +112,7 @@ public class SortNode {
 			// Once all data is received then sort the data and upload result
 			// file to S3.
 			log.info("Entering method: checkIfAllDataReceived");
-			checkIfAllDataReceived(outputS3Path, wrapper);
+			checkIfAllDataReceived(outputS3Path, wrapper, awsCredentials);
 			log.info("Leaving method: checkIfAllDataReceived");
 			
 			log.info("Entering method: readPartitionsFromClient");
@@ -162,7 +162,8 @@ public class SortNode {
 					log.info("nodeIp: " + nodeIp + " with NOWORK");
 				}
 			} else {
-				if (nodeIp == INSTANCE_IP) {
+				log.info("Comparing nodeIp: " + nodeIp + " INSTANCE_IP: " + INSTANCE_IP);
+				if (nodeIp.equals(INSTANCE_IP)) {
 					MAXIMUM_PARTITION = maximumPartition;
 					MINIMUM_PARTITION = minimumPartition;
 					INSTANCE_ID = Long.valueOf(instanceId);
@@ -211,10 +212,10 @@ public class SortNode {
 									if (ipToCountOfRequests.get(instanceIp) < NUMBER_OF_REQUESTS_STORED) {
 										ipToCountOfRequests.put(instanceIp, ipToCountOfRequests.get(instanceIp) + 1);
 										ipToActualRequestString.put(instanceIp,
-												ipToActualRequestString.get(instanceIp).append(line + ":"));
+												ipToActualRequestString.get(instanceIp).append(Arrays.toString(line) + ":"));
 									} else {
 										ipToActualRequestString.put(instanceIp,
-												ipToActualRequestString.get(instanceIp).append(line + ":"));
+												ipToActualRequestString.get(instanceIp).append(Arrays.toString(line) + ":"));
 										sendRequestToSortNode(instanceIp, ipToCountOfRequests, ipToActualRequestString);
 									}
 								}
@@ -271,14 +272,15 @@ public class SortNode {
 	 * to S3.
 	 * 
 	 */
-	private static void checkIfAllDataReceived(String outputS3Path, S3Wrapper wrapper) {
+	private static void checkIfAllDataReceived(String outputS3Path, S3Wrapper wrapper, BasicAWSCredentials awsCredentials) {
 		post("/end", (request, response) -> {
 			NO_OF_SORT_NODES_WHERE_DATA_IS_RECEIVED.getAndIncrement();
 			if (NO_OF_SORT_NODES_WHERE_DATA_IS_RECEIVED.get() == NO_OF_NODES_WITH_WORK) {
 				log.info("Received data from all sort nodes");
 				log.info("Start sorting data....");
 				sortYourOwnData();
-				if (wrapper.uploadDataToS3(outputS3Path, unsortedData, INSTANCE_ID)) {
+				if (wrapper.uploadFileS3(outputS3Path, unsortedData, INSTANCE_ID, awsCredentials)) {
+					log.info("THis is INSTANCE_ID: " + INSTANCE_ID);
 					log.info(String.format("Data uploaded to S3 @ %s", outputS3Path));
 					NodeCommWrapper.SendData(clientIp, PORT_FOR_COMM, END_OF_SORTING_URL, "SORTED");
 				}

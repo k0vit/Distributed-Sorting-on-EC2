@@ -20,6 +20,7 @@ import com.amazonaws.services.s3.model.S3Object;
 import com.amazonaws.services.s3.model.S3ObjectSummary;
 import com.amazonaws.services.s3.transfer.Download;
 import com.amazonaws.services.s3.transfer.TransferManager;
+import com.amazonaws.services.s3.transfer.Upload;
 import com.opencsv.CSVWriter;
 
 public class S3Wrapper {
@@ -124,6 +125,34 @@ public class S3Wrapper {
 		readOutputFromS3(s3FullPath, awsCredentials, fileString);
 		return fileString;
 	}
+	
+	public boolean uploadFileS3(String outputS3Path, List<String[]> nowSortedData, long instanceId,  BasicAWSCredentials awsCredentials) {
+		TransferManager tx = new TransferManager(awsCredentials);
+		String fileName = "part-r-" + instanceId + ".csv";
+		try {
+			CSVWriter writer = new CSVWriter(new FileWriter(fileName));
+			writer.writeAll(nowSortedData);
+			writer.close();
+		} catch (IOException e) {
+			log.severe("File not getting created. Reason: " + e.getMessage());
+			return false;
+		}
+		String s3FullPath = outputS3Path + "/" + fileName;
+		String simplifiedPath = (s3FullPath.replace("s3://", ""));
+		int index = simplifiedPath.indexOf("/");
+		String bucketName = simplifiedPath.substring(0, index);
+		String key = simplifiedPath.substring(index + 1);
+		Upload up = tx.upload(bucketName, key, new File(fileName));
+		try {
+			up.waitForCompletion();
+		} catch (AmazonClientException | InterruptedException e) {
+			log.severe("Failed downloading the file " + s3FullPath + ". Reason " + e.getMessage());
+			return false;
+		}
+		log.info("Full file uploaded to S3 at the path: " + s3FullPath);
+		return true;
+	}
+	
 
 	private static final Logger log = Logger.getLogger(S3Wrapper.class.getName());
 	private AmazonS3 s3client;

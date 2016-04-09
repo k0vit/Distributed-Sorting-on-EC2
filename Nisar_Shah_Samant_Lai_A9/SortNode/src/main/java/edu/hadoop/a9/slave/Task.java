@@ -22,7 +22,7 @@ public class Task implements Runnable {
 	private static final Logger log = Logger.getLogger(Task.class.getName());
 	private static final int BULBTEMP_INDEX = 8;
 	// Using 10% of 300000 data for sampling
-	private static final int TOTAL_DATA_SAMPLES = 1;
+	private static final int TOTAL_DATA_SAMPLES = 1000;
 	private final String clientIp;
 	private static final String CLIENT_PORT = "4567";
 	private static final String SAMPLE_URL = "samples";

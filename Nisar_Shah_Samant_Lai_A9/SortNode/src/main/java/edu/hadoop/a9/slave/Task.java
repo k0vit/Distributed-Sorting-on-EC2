@@ -5,6 +5,8 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.io.PrintWriter;
+import java.io.StringWriter;
 import java.util.Random;
 import java.util.logging.Logger;
 import java.util.zip.GZIPInputStream;
@@ -55,16 +57,29 @@ public class Task implements Runnable {
 
 	@SuppressWarnings("unchecked")
 	public String GetDistribution(String fileName) {
-		File file = new File(System.getProperty("user.dir"), fileName);
+		File file = new File(System.getProperty("user.dir") + File.separator + fileName);
 		log.info(String.format("[%s] Get distribution for file: %s", fileName, file.getAbsolutePath()));
 		JSONObject mainObject = new JSONObject();
 		Random rnd = new Random();
 		JSONArray array = new JSONArray();
 		BufferedReader br = null;
 		try {
+			
 			InputStream is = new FileInputStream(file);
 			is = new GZIPInputStream(is);
 			br = new BufferedReader(new InputStreamReader(is));
+		}
+		catch (Exception e) {
+			log.severe("Failed while buffering file " + file + ". Reason " + e.getLocalizedMessage() 
+					+ ". Cause " + e.getCause());
+			
+			StringWriter errors = new StringWriter();
+			e.printStackTrace(new PrintWriter(errors));
+			log.severe("Stacktrace: " + errors.toString());
+			mainObject.put("samples", array);
+			return mainObject.toJSONString();
+		}
+		try {
 			int samplesTaken = 0;
 			int totalSamplesToTake = TOTAL_DATA_SAMPLES;
 			//Ignore first line which is the header.
@@ -96,5 +111,4 @@ public class Task implements Runnable {
 		mainObject.put("samples", array);
 		return mainObject.toJSONString();
 	}
-
 }

@@ -9,6 +9,7 @@ import java.io.InputStreamReader;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -35,12 +36,12 @@ public class Client {
 	private final static String DEFAULT_PORT = "4567";
 	public final static String NULL_JOB_SIGNAL = "NOWORK";
 	public final static String DELIMITER_OF_FILE = ",";
-	private static int request_count = 0;
+	private static AtomicInteger request_count = new AtomicInteger(0);
 	private static int signal_count = 0;
 	public static int SLAVE_NUM;
 	public static int FILE_NUM;
 	public static long startTime;
-	protected static ArrayList<Distribution> samples = new ArrayList<Distribution>();
+	private static List<Distribution> samples = Collections.synchronizedList(new ArrayList<Distribution>());
 	protected static ArrayList<String> slaves;
 	private static S3Service s3;
 
@@ -80,12 +81,12 @@ public class Client {
 		post(SAMPLE_FILE_URL, (req, res) -> {
 			res.status(200);
 			res.body("SUCCESS RECEIVE SAMPLE");
-			++request_count;
+			request_count.getAndIncrement();
 			LOG.info("Received request from " + req.ip() + " on port " + req.port());
-			LOG.info("total request from files " + request_count);
+			LOG.info("total request from files " + request_count.get());
 			LOG.info("SAMPLES RECEIVED: " + req.body().toString());
 			samples.add(new Distribution(req.body().toString()));
-			if (request_count == FILE_NUM) {
+			if (request_count.get() == FILE_NUM) {
 				LOG.info("request count = to file number. Posting partitions");
 				postResult(samples);
 			}
@@ -225,7 +226,7 @@ public class Client {
 	 * 
 	 * @param samples
 	 */
-	public static void postResult(ArrayList<Distribution> samples) {
+	public static void postResult(List<Distribution> samples) {
 		JSONObject obj = calculateDistribution(samples);
 		String ret = obj.toJSONString();
 		LOG.log(Level.INFO, "partitions: " + ret);
@@ -246,11 +247,12 @@ public class Client {
 	 * @param dis
 	 * @return
 	 */
-	public static JSONObject calculateDistribution(ArrayList<Distribution> dis) {
+	public static JSONObject calculateDistribution(List<Distribution> dis) {
 		ArrayList<Double> samples = new ArrayList<>();
 		for (Distribution distribution : dis) {
 			samples.addAll(distribution.getSamples());
 		}
+		LOG.info("Total number of samples " + samples.size());
 		return partition(samples, slaves);
 	}
 

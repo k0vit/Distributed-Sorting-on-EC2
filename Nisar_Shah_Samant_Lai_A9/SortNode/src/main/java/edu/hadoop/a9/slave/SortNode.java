@@ -80,7 +80,7 @@ public class SortNode {
 		log.info("Application Initialized");
 
 		try {
-			INSTANCE_IP = InetAddress.getLocalHost().getHostName();
+			INSTANCE_IP = InetAddress.getLocalHost().getHostAddress();
 			log.info("Instance IP: " + INSTANCE_IP);
 			BasicAWSCredentials awsCredentials = new BasicAWSCredentials(accessKey, secretKey);
 			AmazonS3Client s3client = new AmazonS3Client(awsCredentials);

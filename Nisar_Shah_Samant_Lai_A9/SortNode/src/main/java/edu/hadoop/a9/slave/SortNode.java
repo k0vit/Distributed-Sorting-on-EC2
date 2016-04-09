@@ -315,6 +315,7 @@ public class SortNode {
 				response.body("SUCCESS");
 				String fileString = request.body();
 				String[] filenames = fileString.split(",");
+				log.info("Received No of Files: " + filenames.length + " for sampling");
 				randomlySample(filenames, awsCredentials, inputS3Path);
 				return response.body().toString();
 			});

@@ -11,9 +11,6 @@ import java.util.Random;
 import java.util.logging.Logger;
 import java.util.zip.GZIPInputStream;
 
-import org.json.simple.JSONArray;
-import org.json.simple.JSONObject;
-
 import com.amazonaws.auth.BasicAWSCredentials;
 import com.amazonaws.services.s3.AmazonS3Client;
 
@@ -55,13 +52,13 @@ public class Task implements Runnable {
 		}
 	}
 
-	@SuppressWarnings("unchecked")
 	public String GetDistribution(String fileName) {
 		File file = new File(System.getProperty("user.dir") + File.separator + fileName);
 		log.info(String.format("[%s] Get distribution for file: %s", fileName, file.getAbsolutePath()));
-		JSONObject mainObject = new JSONObject();
+//		JSONObject mainObject = new JSONObject();
+		StringBuilder commaSeparatedString = new StringBuilder();
 		Random rnd = new Random();
-		JSONArray array = new JSONArray();
+//		JSONArray array = new JSONArray();
 		BufferedReader br = null;
 		try {
 			
@@ -76,8 +73,9 @@ public class Task implements Runnable {
 			StringWriter errors = new StringWriter();
 			e.printStackTrace(new PrintWriter(errors));
 			log.severe("Stacktrace: " + errors.toString());
-			mainObject.put("samples", array);
-			return mainObject.toJSONString();
+			return commaSeparatedString.toString();
+//			mainObject.put("samples", array);
+//			return mainObject.toJSONString();
 		}
 		String line = null;
 		try {
@@ -93,7 +91,9 @@ public class Task implements Runnable {
 				try {
 					double temp = Double.parseDouble(parts[BULBTEMP_INDEX]);
 					if (samplesTaken < totalSamplesToTake && rnd.nextBoolean()) {
-						array.add(temp);
+//						array.add(temp);
+						commaSeparatedString.append(temp);
+						commaSeparatedString.append(",");
 						samplesTaken++;
 					}
 				} catch (Exception e) {
@@ -104,11 +104,14 @@ public class Task implements Runnable {
 			br.close();
 		} catch (Exception e) {
 			log.severe("Exception while reading data: " + line + ". Reason:"+ e.getMessage());
-			mainObject.put("samples", array);
-			return mainObject.toJSONString();
+			return commaSeparatedString.toString();
+//			mainObject.put("samples", array);
+//			return mainObject.toJSONString();
 		}
 		log.info(String.format("File: %s is now sampled.", fileName));
-		mainObject.put("samples", array);
-		return mainObject.toJSONString();
+//		mainObject.put("samples", array);
+//		return mainObject.toJSONString();
+		commaSeparatedString.deleteCharAt(commaSeparatedString.length() - 1);
+		return commaSeparatedString.toString();
 	}
 }

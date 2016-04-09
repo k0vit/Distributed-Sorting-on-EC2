@@ -38,7 +38,6 @@ public class Distribution {
 
 	public Distribution(String str) {
 		try {
-			LOG.info("Got samples: " + str);
 			JSONObject obj = (JSONObject) parser.parse(str);
 			JSONArray arr = (JSONArray) obj.get("samples");
 			samples = new ArrayList<Double>();

@@ -1,8 +1,10 @@
+#!/bin/bash
+
 chmod 400 ec2key.pem
 
 while IFS="=" read key value
 do
-	key=${key// }
+	key="${key// }"
         value="${value// }"
 
         if [ "$key" == "AccessKey" ]

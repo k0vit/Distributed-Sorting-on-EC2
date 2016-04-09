@@ -112,7 +112,7 @@ public class SortNode {
 			// Once all data is received then sort the data and upload result
 			// file to S3.
 			log.info("Entering method: checkIfAllDataReceived");
-			checkIfAllDataReceived(outputS3Path, wrapper);
+			checkIfAllDataReceived(outputS3Path, wrapper, awsCredentials);
 			log.info("Leaving method: checkIfAllDataReceived");
 			
 			log.info("Entering method: readPartitionsFromClient");
@@ -162,7 +162,8 @@ public class SortNode {
 					log.info("nodeIp: " + nodeIp + " with NOWORK");
 				}
 			} else {
-				if (nodeIp == INSTANCE_IP) {
+				log.info("Comparing nodeIp: " + nodeIp + " INSTANCE_IP: " + INSTANCE_IP);
+				if (nodeIp.equals(INSTANCE_IP)) {
 					MAXIMUM_PARTITION = maximumPartition;
 					MINIMUM_PARTITION = minimumPartition;
 					INSTANCE_ID = Long.valueOf(instanceId);
@@ -271,14 +272,15 @@ public class SortNode {
 	 * to S3.
 	 * 
 	 */
-	private static void checkIfAllDataReceived(String outputS3Path, S3Wrapper wrapper) {
+	private static void checkIfAllDataReceived(String outputS3Path, S3Wrapper wrapper, BasicAWSCredentials awsCredentials) {
 		post("/end", (request, response) -> {
 			NO_OF_SORT_NODES_WHERE_DATA_IS_RECEIVED.getAndIncrement();
 			if (NO_OF_SORT_NODES_WHERE_DATA_IS_RECEIVED.get() == NO_OF_NODES_WITH_WORK) {
 				log.info("Received data from all sort nodes");
 				log.info("Start sorting data....");
 				sortYourOwnData();
-				if (wrapper.uploadDataToS3(outputS3Path, unsortedData, INSTANCE_ID)) {
+				if (wrapper.uploadFileS3(outputS3Path, unsortedData, INSTANCE_ID, awsCredentials)) {
+					log.info("THis is INSTANCE_ID: " + INSTANCE_ID);
 					log.info(String.format("Data uploaded to S3 @ %s", outputS3Path));
 					NodeCommWrapper.SendData(clientIp, PORT_FOR_COMM, END_OF_SORTING_URL, "SORTED");
 				}

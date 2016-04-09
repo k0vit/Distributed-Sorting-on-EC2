@@ -10,6 +10,7 @@ import java.util.logging.Logger;
 
 import com.amazonaws.AmazonServiceException;
 import com.amazonaws.auth.BasicAWSCredentials;
+import com.amazonaws.regions.Regions;
 import com.amazonaws.services.ec2.AmazonEC2Client;
 import com.amazonaws.services.ec2.model.AuthorizeSecurityGroupIngressRequest;
 import com.amazonaws.services.ec2.model.CreateKeyPairRequest;
@@ -34,6 +35,7 @@ public class ClusterCreator {
 	public ClusterCreator(ClusterParams params) {
 		this.params = params;
 		amazonEC2Client = new AmazonEC2Client(new BasicAWSCredentials(params.getAccessKey(), params.getSecretKey()));
+		amazonEC2Client.withRegion(Regions.US_EAST_1);
 	}
 
 	public boolean createCluster() {

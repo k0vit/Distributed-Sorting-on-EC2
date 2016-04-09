@@ -98,18 +98,31 @@ public class SortNode {
 			log.info("Config file name: " + configFileName);
 			readFileAndSetProps(configFileName);
 
+			log.info("Entering method: sendSampleDistribution");
 			// This is the first thing node will do as soon as it is up.
 			sendSampleDistribution(wrapper, awsCredentials, inputS3Path);
-
-			// Read partitions from client and send data to other sort nodes.
-			readPartitionsFromClient();
-
+			log.info("Leaving method: sendSampleDistribution");
+			
 			// Receive data from other sort nodes in the different list.
+			log.info("Entering method: receiveDataFromOtherSortNodes");
 			receiveDataFromOtherSortNodes();
-
+			log.info("Leaving method: receiveDataFromOtherSortNodes");
+			
 			// Once all data is received then sort the data and upload result
 			// file to S3.
+			log.info("Entering method: checkIfAllDataReceived");
 			checkIfAllDataReceived(outputS3Path, wrapper);
+			log.info("Leaving method: checkIfAllDataReceived");
+			
+			log.info("Entering method: readPartitionsFromClient");
+			// Read partitions from client and send data to other sort nodes.
+			readPartitionsFromClient();
+			log.info("Leaving method: readPartitionsFromClient");
+			
+			log.info("Entering method: sendDataToOtherSortNodes");
+			sendDataToOtherSortNodes();
+			log.info("Leaving method: sendDataToOtherSortNodes");
+
 
 		} catch (IOException e) {
 			log.severe(e.getMessage());
@@ -120,78 +133,11 @@ public class SortNode {
 	/**
 	 * 
 	 */
-	private static void receiveDataFromOtherSortNodes() {
-
-		post("/records", (request, response) -> {
-			String recordList = request.body();
-			String[] records = recordList.split(":");
-			log.info(String.format("Received %s records from [%s]", records.length, request.ip()));
-			for (String record : records) {
-				dataFromOtherNodes.add(record.split(","));
-			}
-			response.status(200);
-			response.body("Awesome");
-			return response.body().toString();
-		});
-
-	}
-
-	/**
-	 * If All data is received then start sorting the data you have and write it
-	 * to S3.
-	 * 
-	 */
-	private static void checkIfAllDataReceived(String outputS3Path, S3Wrapper wrapper) {
-		post("/end", (request, response) -> {
-			NO_OF_SORT_NODES_WHERE_DATA_IS_RECEIVED.getAndIncrement();
-			if (NO_OF_SORT_NODES_WHERE_DATA_IS_RECEIVED.get() == NO_OF_NODES_WITH_WORK) {
-				log.info("Received data from all sort nodes");
-				log.info("Start sorting data....");
-				sortYourOwnData();
-				if (wrapper.uploadDataToS3(outputS3Path, unsortedData, INSTANCE_ID)) {
-					log.info(String.format("Data uploaded to S3 @ %s", outputS3Path));
-					NodeCommWrapper.SendData(clientIp, PORT_FOR_COMM, END_OF_SORTING_URL, "SORTED");
-				}
-			}
-			return response.body().toString();
-		});
-
-	}
-
-	/**
-	 * 
-	 */
-	public static void readPartitionsFromClient() {
+	private static void sendDataToOtherSortNodes() {
 		JSONParser parser = new JSONParser();
 		Map<String, Integer> ipToCountOfRequests = new HashMap<String, Integer>();
 		Map<String, StringBuilder> ipToActualRequestString = new HashMap<String, StringBuilder>();
-
-		post("/partitions", (request, response) -> {
-			log.info("Received partitions from the client!");
-			log.info("Partition is as follows: " + request.body());
-			response.status(200);
-			response.body("SUCCESS");
-			jsonPartitions = request.body();
-			partitionReceived = true;
-			return response.body().toString();
-		});
 		
-		int count = 0;
-		while (!partitionReceived) {
-			if (count == 4) {
-				break;
-			}
-			try {
-				Thread.sleep(5000);
-				count++;
-				log.info("...");
-			} catch (InterruptedException e) {
-				log.info("Thread interrupted");
-			}
-			
-		}
-
-		log.info("Out of while loop");
 		JSONObject entireJSON = null;
 		try {
 			entireJSON = (JSONObject) parser.parse(jsonPartitions);
@@ -294,6 +240,79 @@ public class SortNode {
 			NodeCommWrapper.SendData(ipAddress, PORT_FOR_COMM, END_URL, "EOF");
 		}
 
+	}
+
+	/**
+	 * 
+	 */
+	private static void receiveDataFromOtherSortNodes() {
+
+		post("/records", (request, response) -> {
+			String recordList = request.body();
+			String[] records = recordList.split(":");
+			log.info(String.format("Received %s records from [%s]", records.length, request.ip()));
+			for (String record : records) {
+				dataFromOtherNodes.add(record.split(","));
+			}
+			response.status(200);
+			response.body("Awesome");
+			return response.body().toString();
+		});
+
+	}
+
+	/**
+	 * If All data is received then start sorting the data you have and write it
+	 * to S3.
+	 * 
+	 */
+	private static void checkIfAllDataReceived(String outputS3Path, S3Wrapper wrapper) {
+		post("/end", (request, response) -> {
+			NO_OF_SORT_NODES_WHERE_DATA_IS_RECEIVED.getAndIncrement();
+			if (NO_OF_SORT_NODES_WHERE_DATA_IS_RECEIVED.get() == NO_OF_NODES_WITH_WORK) {
+				log.info("Received data from all sort nodes");
+				log.info("Start sorting data....");
+				sortYourOwnData();
+				if (wrapper.uploadDataToS3(outputS3Path, unsortedData, INSTANCE_ID)) {
+					log.info(String.format("Data uploaded to S3 @ %s", outputS3Path));
+					NodeCommWrapper.SendData(clientIp, PORT_FOR_COMM, END_OF_SORTING_URL, "SORTED");
+				}
+			}
+			return response.body().toString();
+		});
+
+	}
+
+	/**
+	 * 
+	 */
+	public static void readPartitionsFromClient() {
+		
+		post("/partitions", (request, response) -> {
+			log.info("Received partitions from the client!");
+			log.info("Partition is as follows: " + request.body());
+			response.status(200);
+			response.body("SUCCESS");
+			jsonPartitions = request.body();
+			partitionReceived = true;
+			return response.body().toString();
+		});
+		
+		int count = 0;
+		while (!partitionReceived) {
+			if (count == 4) {
+				break;
+			}
+			try {
+				Thread.sleep(5000);
+				count++;
+				log.info("...");
+			} catch (InterruptedException e) {
+				log.info("Thread interrupted");
+			}
+			
+		}
+		log.info("Out of while loop");
 	}
 	/**
 	 * 

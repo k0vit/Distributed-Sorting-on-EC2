@@ -8,6 +8,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.logging.Logger;
 
+import com.amazonaws.AmazonClientException;
 import com.amazonaws.auth.BasicAWSCredentials;
 import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.model.GetObjectRequest;
@@ -17,6 +18,7 @@ import com.amazonaws.services.s3.model.ObjectMetadata;
 import com.amazonaws.services.s3.model.PutObjectRequest;
 import com.amazonaws.services.s3.model.S3Object;
 import com.amazonaws.services.s3.model.S3ObjectSummary;
+import com.amazonaws.services.s3.transfer.Download;
 import com.amazonaws.services.s3.transfer.TransferManager;
 import com.opencsv.CSVWriter;
 
@@ -66,9 +68,12 @@ public class S3Wrapper {
 		String key = simplifiedPath.substring(index + 1);
 		log.info(String.format("[%s] Downloaded file with Bucket Name: %s Key: %s ", filename, bucketName, key));
 		log.info("CURRENT USER DIRECTORY: " + System.getProperty("user.dir"));
-		tx.download(bucketName, key, new File(filename));
-		File f = new File(System.getProperty("user.dir") + File.separator + filename);
-		while (!f.exists()) { }
+		Download d = tx.download(bucketName, key, new File(filename));
+		try {
+			d.waitForCompletion();
+		} catch (AmazonClientException | InterruptedException e) {
+			log.severe("Failed downloading the file " + filename + ". Reason " + e.getMessage());
+		}
 		return filename;
 	}
 

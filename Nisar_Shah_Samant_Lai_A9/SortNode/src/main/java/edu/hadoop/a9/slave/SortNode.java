@@ -190,7 +190,6 @@ public class SortNode {
 				CSVReader reader = new CSVReader(br);
 				String[] line = null;
 				reader.readNext();
-				log.info("1");
 				while ((line = reader.readNext()) != null) {
 					if (!(line.length < 9) && !line[DRY_BULB_COL].equals("-")) {
 						double dryBulbTemp;
@@ -200,27 +199,22 @@ public class SortNode {
 							log.info("Failed to parse value to Double: " + line[DRY_BULB_COL]);
 							continue;
 						}
-						log.info("2");
 						// Check which partition it lies within and send to
 						// the sortNode required
 						for (String instanceIp : ipToMaxMap.keySet()) {
 							if (dryBulbTemp >= ipToMinMap.get(instanceIp)
 									&& dryBulbTemp <= ipToMaxMap.get(instanceIp)) {
-								log.info("3");
 								if (instanceIp.equals(INSTANCE_IP)) {
 //									unsortedData.add(line);
-									log.info("Added line to unsorted data");
 								} else {
 									if (ipToCountOfRequests.get(instanceIp) < NUMBER_OF_REQUESTS_STORED) {
 										ipToCountOfRequests.put(instanceIp, ipToCountOfRequests.get(instanceIp) + 1);
 										ipToActualRequestString.put(instanceIp,
 												ipToActualRequestString.get(instanceIp).append(line + ":"));
-										log.info("4");
 									} else {
 										ipToActualRequestString.put(instanceIp,
 												ipToActualRequestString.get(instanceIp).append(line + ":"));
 										sendRequestToSortNode(instanceIp, ipToCountOfRequests, ipToActualRequestString);
-										log.info("5");
 									}
 								}
 								break;

@@ -40,7 +40,7 @@ public class Client {
 	public static int SLAVE_NUM;
 	public static int FILE_NUM;
 	public static long startTime;
-	protected static ArrayList<Distribution> samples = new ArrayList();
+	protected static ArrayList<Distribution> samples = new ArrayList<Distribution>();
 	protected static ArrayList<String> slaves;
 	private static S3Service s3;
 
@@ -80,8 +80,8 @@ public class Client {
 		post(SAMPLE_FILE_URL, (req, res) -> {
 			res.status(200);
 			res.body("SUCCESS RECEIVE SAMPLE");
-			request_count++;
-			LOG.info("Recieved request from " + req.ip() + " on port " + req.port());
+			++request_count;
+			LOG.info("Received request from " + req.ip() + " on port " + req.port());
 			LOG.info("total request from files " + request_count);
 			LOG.info("SAMPLES RECEIVED: " + req.body().toString());
 			samples.add(new Distribution(req.body().toString()));

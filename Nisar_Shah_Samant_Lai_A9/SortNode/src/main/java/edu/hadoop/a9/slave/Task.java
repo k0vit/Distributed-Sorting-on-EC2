@@ -1,10 +1,11 @@
 package edu.hadoop.a9.slave;
 
+import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.util.Random;
-import java.util.Scanner;
 import java.util.logging.Logger;
 import java.util.zip.GZIPInputStream;
 
@@ -59,41 +60,41 @@ public class Task implements Runnable {
 		JSONObject mainObject = new JSONObject();
 		Random rnd = new Random();
 		JSONArray array = new JSONArray();
-		Scanner in = null;
+		BufferedReader br = null;
 		try {
 			InputStream is = new FileInputStream(file);
 			is = new GZIPInputStream(is);
-			in = new Scanner(is);
+			br = new BufferedReader(new InputStreamReader(is));
+			int samplesTaken = 0;
+			int totalSamplesToTake = TOTAL_DATA_SAMPLES;
+			//Ignore first line which is the header.
+			br.readLine();
+			String line = null;
+			while ((line = br.readLine()) != null) {
+				String[] parts = line.split("\\,");
+				if ((parts.length < 9) || parts[BULBTEMP_INDEX].equals("-")) {
+					continue;
+				}
+				try {
+					double temp = Double.parseDouble(parts[BULBTEMP_INDEX]);
+					if (samplesTaken < totalSamplesToTake && rnd.nextBoolean()) {
+						array.add(temp);
+						samplesTaken++;
+					}
+				} catch (Exception e) {
+					log.severe("Exception parsing data: " + e.getMessage());
+					continue;
+				}
+			}
+			br.close();
 		} catch (Exception e) {
-			log.severe("Excption while reading data: " + e.getMessage());
+			log.severe("Exception while reading data: " + e.getMessage());
 			mainObject.put("samples", array);
 			return mainObject.toJSONString();
 		}
-		int samplesTaken = 0;
-		int totalSamplesToTake = TOTAL_DATA_SAMPLES;
-		in.nextLine();
-		while (in.hasNextLine()) {
-			String line = in.nextLine();
-			String[] parts = line.split("\\,");
-			if ((parts.length < 9) || parts[BULBTEMP_INDEX].equals("-")) {
-				continue;
-			}
-			try {
-				double temp = Double.parseDouble(parts[BULBTEMP_INDEX]);
-				if (samplesTaken < totalSamplesToTake && rnd.nextBoolean()) {
-					array.add(temp);
-					samplesTaken++;
-				}
-			} catch (Exception e) {
-				log.severe("Exception parsing data: " + e.getMessage());
-				continue;
-			}
-		}
-		in.close();
 		log.info(String.format("File: %s is now sampled.", fileName));
 		mainObject.put("samples", array);
 		return mainObject.toJSONString();
-
 	}
 
 }

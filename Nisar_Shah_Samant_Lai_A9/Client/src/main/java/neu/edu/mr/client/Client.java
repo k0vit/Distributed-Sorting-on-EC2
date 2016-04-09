@@ -117,6 +117,7 @@ public class Client {
 	 */
 	protected static void distributeJob(String inputS3Path) {
 		List<String> files = s3.getListOfObjects(inputS3Path);
+		LOG.info("Actual files count from s3 " + files.size());
 		List<String> curatedFiles = new ArrayList<String>();
 		for (String file : files) {
 			if (checkFileExtensionsIsGz(file)) {
@@ -166,6 +167,8 @@ public class Client {
 		List<String> shares = new ArrayList<String>();
 		int share = FILE_NUM / SLAVE_NUM;
 		int mod = FILE_NUM % SLAVE_NUM;
+		LOG.info("Share count " + share);
+		LOG.info("Mod count " + mod);
 		for (int j = 0, i = 0; j < SLAVE_NUM; j++) {
 			StringBuilder sb = new StringBuilder();
 			for (int k = i; i - k < share && i < FILE_NUM; i++) {
@@ -176,6 +179,7 @@ public class Client {
 				sb.append(DELIMITER_OF_FILE);
 				sb.append(files.get(i++));
 			}
+			LOG.info("Share for node " + j + " is " + i);
 			sb.deleteCharAt(0);
 			shares.add(sb.toString());
 		}

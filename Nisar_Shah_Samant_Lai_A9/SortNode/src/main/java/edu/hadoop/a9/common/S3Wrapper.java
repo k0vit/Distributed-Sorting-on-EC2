@@ -126,6 +126,17 @@ public class S3Wrapper {
 		log.info("Full file uploaded to S3 at the path: " + outputPath);
 		return true;
 	}
+	
+//	public boolean uploadStringData(String data, String outputPath) {
+//		InputStream is = new ByteArrayInputStream(data.getBytes());
+//		String simplifiedPath = (outputPath.replace("s3://", ""));
+//		int index = simplifiedPath.indexOf("/");
+//		String bucketName = simplifiedPath.substring(0, index);
+//		String key = simplifiedPath.substring(index + 1);
+//		log.info("Uploading file to bucket " + bucketName + " with key as " + key);
+//		s3client.putObject(new PutObjectRequest(bucketName, key, is, new ObjectMetadata()));
+//		return true;
+//	}
 
 	private static String removeS3(String path) {
 		if (!path.startsWith("s3://"))

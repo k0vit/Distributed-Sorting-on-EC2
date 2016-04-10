@@ -287,9 +287,11 @@ public class SortNode {
 	 * @param ipToCountOfRequests
 	 * @param ipToActualRequestString
 	 */
+
 	public static void sendRequestToSortNode(String recordList, String fileName, String instanceIp) {
 		wrapper.uploadStringData(recordList, outputS3Path + "/" + instanceIp + "/" + fileName);
 		NodeCommWrapper.SendData(instanceIp, PORT_FOR_COMM, RECORDS_URL, fileName);
+
 	}
 
 	/**

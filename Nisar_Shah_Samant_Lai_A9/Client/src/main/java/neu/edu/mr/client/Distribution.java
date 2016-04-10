@@ -38,20 +38,19 @@ public class Distribution {
 	}
 
 	public Distribution(String str) {
-		try {
-			String[] samplesArr = str.split(",");
-			samples = new ArrayList<Double>();
-			for (String num : samplesArr) {
+		String[] samplesArr = str.split(",");
+		samples = new ArrayList<Double>();
+		for (String num : samplesArr) {
+			try {
 				samples.add(Double.parseDouble(num));
 			}
-			LOG.info("Received samples " + samples.size());
-		} catch (Exception e) {
-			LOG.log(Level.SEVERE, "Failed parsing sample : " + str +  ". Reason:" + e.getMessage());
-			StringWriter errors = new StringWriter();
-			e.printStackTrace(new PrintWriter(errors));
-			LOG.severe("Stacktrace: " + errors.toString());
+			catch (Exception e) {
+				LOG.log(Level.SEVERE, "Ignoring sample because failed parsing sample : " + num + 
+						". Reason:" + e.getMessage());
+			}
 		}
-	}
+		LOG.info("Received samples " + samples.size());
+	} 
 
 	public ArrayList<Double> getSamples() {
 		return samples;

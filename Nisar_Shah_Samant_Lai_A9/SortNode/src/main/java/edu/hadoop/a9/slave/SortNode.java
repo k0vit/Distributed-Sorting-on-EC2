@@ -1,13 +1,12 @@
 package edu.hadoop.a9.slave;
 
 import static spark.Spark.post;
+import static spark.Spark.threadPool;
 
 import java.io.BufferedReader;
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.FileReader;
 import java.io.IOException;
-import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.net.InetAddress;
@@ -22,7 +21,6 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Logger;
-import java.util.zip.GZIPInputStream;
 
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
@@ -31,7 +29,6 @@ import org.json.simple.parser.ParseException;
 
 import com.amazonaws.auth.BasicAWSCredentials;
 import com.amazonaws.services.s3.AmazonS3Client;
-import com.opencsv.CSVReader;
 
 import edu.hadoop.a9.common.NodeCommWrapper;
 import edu.hadoop.a9.common.S3Wrapper;
@@ -43,8 +40,8 @@ public class SortNode {
 	static String clientIp;
 	public static final int DRY_BULB_COL = 8;
 	static int TOTAL_NO_OF_SORT_NODES;
-	static Map<String, Double> ipToMaxMap = new HashMap<String, Double>();
-	static Map<String, Double> ipToMinMap = new HashMap<String, Double>();
+	static Map<String, Double> ipToMaxMap;
+	static Map<String, Double> ipToMinMap;
 	static Double MINIMUM_PARTITION;
 	static Double MAXIMUM_PARTITION;
 	static String INSTANCE_IP;
@@ -53,7 +50,7 @@ public class SortNode {
 	// To avoid synchronization issues create one more list of records.
 	static List<String[]> dataFromOtherNodes = Collections.synchronizedList(new LinkedList<String[]>());
 	public static final String PORT_FOR_COMM = "4567";
-	public static final int NUMBER_OF_REQUESTS_STORED = 2000;
+	public static final int NUMBER_OF_REQUESTS_STORED = 300000;
 	public static final String PARTITION_URL = "partitions";
 	public static final String END_URL = "end";
 	public static final String END_OF_SORTING_URL = "signals";
@@ -62,6 +59,7 @@ public class SortNode {
 	static String jsonPartitions;
 	static boolean partitionReceived = false;
 	static int NO_OF_NODES_WITH_WORK = 0;
+	public static AtomicInteger filesShuffledCount = new AtomicInteger(0);
 
 	public static void main(String[] args) {
 		if (args.length != 5) {
@@ -135,8 +133,6 @@ public class SortNode {
 	 */
 	private static void sendDataToOtherSortNodes() {
 		JSONParser parser = new JSONParser();
-		Map<String, Integer> ipToCountOfRequests = new HashMap<String, Integer>();
-		Map<String, StringBuilder> ipToActualRequestString = new HashMap<String, StringBuilder>();
 
 		JSONObject entireJSON = null;
 		try {
@@ -172,74 +168,48 @@ public class SortNode {
 				NO_OF_NODES_WITH_WORK++;
 				ipToMaxMap.put(nodeIp, maximumPartition);
 				ipToMinMap.put(nodeIp, minimumPartition);
-				ipToCountOfRequests.put(nodeIp, 0);
-				ipToActualRequestString.put(nodeIp, new StringBuilder());
 			}
 		}
 
 		// Read local data line by line
+		ThreadPoolExecutor executor = (ThreadPoolExecutor) Executors.newCachedThreadPool();
 		File[] dataFolder = listDirectory(System.getProperty("user.dir"));
+		int totalFiles = 0;
 		for (File file : dataFolder) {
-			try (BufferedReader br = new BufferedReader(new InputStreamReader(new GZIPInputStream(new FileInputStream(file))))){
-				int count = 0;
-				if (!checkFileExtensionsIsGz(file.getName()))
-					continue;
-				log.info(String.format("[%s] The file getting read: %s", INSTANCE_IP, file));
-				CSVReader reader = new CSVReader(br);
-				String[] line = null;
-				reader.readNext();
-				while ((line = reader.readNext()) != null) {
-					if (!(line.length < 9) && !line[DRY_BULB_COL].equals("-")) {
-						double dryBulbTemp;
-						try {
-							dryBulbTemp = Double.parseDouble(line[DRY_BULB_COL]);
-						} catch (Exception e) {
-							log.info("Failed to parse value to Double: " + line[DRY_BULB_COL]);
-							continue;
-						}
-						// Check which partition it lies within and send to
-						// the sortNode required
-						for (String instanceIp : ipToMaxMap.keySet()) {
-							if (dryBulbTemp >= ipToMinMap.get(instanceIp)
-									&& dryBulbTemp <= ipToMaxMap.get(instanceIp)) {
-								if (instanceIp.equals(INSTANCE_IP)) {
-									unsortedData.add(line);
-								} else {
-									if (ipToCountOfRequests.get(instanceIp) < NUMBER_OF_REQUESTS_STORED) {
-										ipToCountOfRequests.put(instanceIp, ipToCountOfRequests.get(instanceIp) + 1);
-										ipToActualRequestString.put(instanceIp,
-												ipToActualRequestString.get(instanceIp).append(Arrays.toString(line) + ":"));
-									} else {
-										ipToActualRequestString.put(instanceIp,
-												ipToActualRequestString.get(instanceIp).append(Arrays.toString(line) + ":"));
-										sendRequestToSortNode(instanceIp, ipToCountOfRequests, ipToActualRequestString);
-									}
-								}
-								break;
-							}
-						}
-					}
-				}
-				reader.close();
-				count++;
-				log.info("No of files processed: " + count);
-			} catch (Exception e) {
-				log.severe("Failed while parsing value: " + e.getLocalizedMessage());
-				StringWriter errors = new StringWriter();
-				e.printStackTrace(new PrintWriter(errors));
-				log.severe("Stacktrace: " + errors.toString());
+			if (checkFileExtensionsIsGz(file.getName())) {
+				totalFiles++;
+				ShufflingTask task = new ShufflingTask(file, ipToMaxMap, ipToMinMap, INSTANCE_IP);
+				log.info("ShufflingTask started");
+				executor.execute(task);
 			}
 		}
+		log.info("Executor shutdown");
+		executor.shutdown();
 
-		for (String ipAddress : ipToCountOfRequests.keySet()) {
-			log.info("Flush out remaining data to Sort Node: " + ipAddress);
-			if (ipToCountOfRequests.get(ipAddress) > 0) {
-				sendRequestToSortNode(ipAddress, ipToCountOfRequests, ipToActualRequestString);
+		/*try {
+			executor.awaitTermination(Long.MAX_VALUE, TimeUnit.NANOSECONDS);
+		} catch (InterruptedException e) {
+			log.info("Executor interrupted");
+		}*/
+
+		while (filesShuffledCount.get() != totalFiles) {
+			log.info("Waiting for all files to be resuffled");
+			try {
+				Thread.sleep(20000);
+			} catch (InterruptedException e) {
+				log.severe("Thread sleep interrupted when waiting for all files to be reshuffled");
 			}
-			// SEND EOF to signal end of file
+		}
+		
+		log.info("Resuffling done");
+		
+		for (String ipAddress : ipToMaxMap.keySet()) {
 			NodeCommWrapper.SendData(ipAddress, PORT_FOR_COMM, END_URL, "EOF");
 		}
-
+	}
+	
+	public static synchronized void addUnsortedData(List<String[]> unsortedData) {
+		unsortedData.addAll(unsortedData);
 	}
 
 	/**
@@ -292,6 +262,8 @@ public class SortNode {
 	 * 
 	 */
 	public static void readPartitionsFromClient() {
+		
+		threadPool(8);
 
 		post("/partitions", (request, response) -> {
 			log.info("Received partitions from the client!");
@@ -319,14 +291,13 @@ public class SortNode {
 	 * @param ipToCountOfRequests
 	 * @param ipToActualRequestString
 	 */
-	private static void sendRequestToSortNode(String instanceIp, Map<String, Integer> ipToCountOfRequests,
+	public static void sendRequestToSortNode(String instanceIp, Map<String, Integer> ipToCountOfRequests,
 			Map<String, StringBuilder> ipToActualRequestString) {
 		StringBuilder sb = ipToActualRequestString.get(instanceIp);
 		ipToActualRequestString.put(instanceIp, new StringBuilder());
 		ipToCountOfRequests.put(instanceIp, 0);
 		String recordList = sb.deleteCharAt(sb.length()-1).toString();
 		sb = null;
-		System.gc();
 		NodeCommWrapper.SendData(instanceIp, PORT_FOR_COMM, RECORDS_URL, recordList);
 	}
 
@@ -361,6 +332,8 @@ public class SortNode {
 				}
 			}
 			log.info("Total number of sort nodes: " + TOTAL_NO_OF_SORT_NODES);
+			ipToMaxMap = new HashMap<String, Double>(TOTAL_NO_OF_SORT_NODES);
+			ipToMinMap = new HashMap<String, Double>(TOTAL_NO_OF_SORT_NODES);
 			br.close();
 		} catch (IOException e) {
 			log.severe("File reader error: " + e.getMessage());

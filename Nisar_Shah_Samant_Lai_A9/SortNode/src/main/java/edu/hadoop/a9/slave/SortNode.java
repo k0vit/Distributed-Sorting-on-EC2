@@ -1,7 +1,6 @@
 package edu.hadoop.a9.slave;
 
 import static spark.Spark.post;
-import static spark.Spark.threadPool;
 
 import java.io.BufferedReader;
 import java.io.File;
@@ -50,7 +49,7 @@ public class SortNode {
 	// To avoid synchronization issues create one more list of records.
 	static List<String[]> dataFromOtherNodes = Collections.synchronizedList(new LinkedList<String[]>());
 	public static final String PORT_FOR_COMM = "4567";
-	public static final int NUMBER_OF_REQUESTS_STORED = 300000;
+	public static final int NUMBER_OF_REQUESTS_STORED = 90000;
 	public static final String PARTITION_URL = "partitions";
 	public static final String END_URL = "end";
 	public static final String END_OF_SORTING_URL = "signals";
@@ -208,8 +207,8 @@ public class SortNode {
 		}
 	}
 	
-	public static synchronized void addUnsortedData(List<String[]> unsortedData) {
-		unsortedData.addAll(unsortedData);
+	public static synchronized void addUnsortedData(List<String[]> unsortedDat) {
+		unsortedData.addAll(unsortedDat);
 	}
 
 	/**
@@ -263,8 +262,6 @@ public class SortNode {
 	 */
 	public static void readPartitionsFromClient() {
 		
-		threadPool(8);
-
 		post("/partitions", (request, response) -> {
 			log.info("Received partitions from the client!");
 			log.info("Partition is as follows: " + request.body());
@@ -298,6 +295,7 @@ public class SortNode {
 		ipToCountOfRequests.put(instanceIp, 0);
 		String recordList = sb.deleteCharAt(sb.length()-1).toString();
 		sb = null;
+		
 		NodeCommWrapper.SendData(instanceIp, PORT_FOR_COMM, RECORDS_URL, recordList);
 	}
 

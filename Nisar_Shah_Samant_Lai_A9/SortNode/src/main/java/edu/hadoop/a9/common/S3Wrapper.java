@@ -1,5 +1,6 @@
 package edu.hadoop.a9.common;
 
+import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
@@ -96,6 +97,17 @@ public class S3Wrapper {
 		String bucket = folder;
 		String remote = local.getName();
 		s3client.putObject(new PutObjectRequest(bucket, remote, local));
+		return true;
+	}
+	
+	public boolean uploadStringData(String data, String outputPath) {
+		InputStream is = new ByteArrayInputStream(data.getBytes());
+		String simplifiedPath = (outputPath.replace("s3://", ""));
+		int index = simplifiedPath.indexOf("/");
+		String bucketName = simplifiedPath.substring(0, index);
+		String key = simplifiedPath.substring(index + 1);
+		log.info("Uploading file to bucket " + bucketName + " with key as " + key);
+		s3client.putObject(new PutObjectRequest(bucketName, key, is, new ObjectMetadata()));
 		return true;
 	}
 

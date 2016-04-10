@@ -3,10 +3,7 @@ package edu.hadoop.a9.slave;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileInputStream;
-import java.io.InputStream;
 import java.io.InputStreamReader;
-import java.io.PrintWriter;
-import java.io.StringWriter;
 import java.util.Random;
 import java.util.logging.Logger;
 import java.util.zip.GZIPInputStream;
@@ -55,33 +52,14 @@ public class Task implements Runnable {
 	public String GetDistribution(String fileName) {
 		File file = new File(System.getProperty("user.dir") + File.separator + fileName);
 		log.info(String.format("[%s] Get distribution for file: %s", fileName, file.getAbsolutePath()));
-//		JSONObject mainObject = new JSONObject();
 		StringBuilder commaSeparatedString = new StringBuilder();
 		Random rnd = new Random();
-//		JSONArray array = new JSONArray();
-		BufferedReader br = null;
-		try {
-			
-			InputStream is = new FileInputStream(file);
-			is = new GZIPInputStream(is);
-			br = new BufferedReader(new InputStreamReader(is));
-		}
-		catch (Exception e) {
-			log.severe("Failed while buffering file " + file + ". Reason " + e.getLocalizedMessage() 
-					+ ". Cause " + e.getCause());
-			
-			StringWriter errors = new StringWriter();
-			e.printStackTrace(new PrintWriter(errors));
-			log.severe("Stacktrace: " + errors.toString());
-			return commaSeparatedString.toString();
-//			mainObject.put("samples", array);
-//			return mainObject.toJSONString();
-		}
-		String line = null;
-		try {
+		String sampledData = null;
+		try (BufferedReader br = new BufferedReader
+				(new InputStreamReader(new GZIPInputStream(new FileInputStream(file))))){
 			int samplesTaken = 0;
 			int totalSamplesToTake = TOTAL_DATA_SAMPLES;
-			//Ignore first line which is the header.
+			String line = null;
 			br.readLine();
 			while ((line = br.readLine()) != null) {
 				String[] parts = line.split("\\,");
@@ -89,10 +67,8 @@ public class Task implements Runnable {
 					continue;
 				}
 				try {
-					double temp = Double.parseDouble(parts[BULBTEMP_INDEX]);
 					if (samplesTaken < totalSamplesToTake && rnd.nextBoolean()) {
-//						array.add(temp);
-						commaSeparatedString.append(temp);
+						commaSeparatedString.append(parts[BULBTEMP_INDEX]);
 						commaSeparatedString.append(",");
 						samplesTaken++;
 					}
@@ -101,17 +77,16 @@ public class Task implements Runnable {
 					continue;
 				}
 			}
-			br.close();
 		} catch (Exception e) {
-			log.severe("Exception while reading data: " + line + ". Reason:"+ e.getMessage());
-			return commaSeparatedString.toString();
-//			mainObject.put("samples", array);
-//			return mainObject.toJSONString();
+			log.severe("Exception while reading data. Reason:"+ e.getMessage());
+			commaSeparatedString = null;
+			return "";
 		}
+		
 		log.info(String.format("File: %s is now sampled.", fileName));
-//		mainObject.put("samples", array);
-//		return mainObject.toJSONString();
 		commaSeparatedString.deleteCharAt(commaSeparatedString.length() - 1);
-		return commaSeparatedString.toString();
+		sampledData = commaSeparatedString.toString();
+		commaSeparatedString = null;
+		return sampledData;
 	}
 }

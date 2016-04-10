@@ -7,7 +7,6 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileReader;
 import java.io.IOException;
-import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.io.StringWriter;
@@ -103,23 +102,23 @@ public class SortNode {
 			// This is the first thing node will do as soon as it is up.
 			sendSampleDistribution(wrapper, awsCredentials, inputS3Path);
 			log.info("Leaving method: sendSampleDistribution");
-			
+
 			// Receive data from other sort nodes in the different list.
 			log.info("Entering method: receiveDataFromOtherSortNodes");
 			receiveDataFromOtherSortNodes();
 			log.info("Leaving method: receiveDataFromOtherSortNodes");
-			
+
 			// Once all data is received then sort the data and upload result
 			// file to S3.
 			log.info("Entering method: checkIfAllDataReceived");
 			checkIfAllDataReceived(outputS3Path, wrapper, awsCredentials);
 			log.info("Leaving method: checkIfAllDataReceived");
-			
+
 			log.info("Entering method: readPartitionsFromClient");
 			// Read partitions from client and send data to other sort nodes.
 			readPartitionsFromClient();
 			log.info("Leaving method: readPartitionsFromClient");
-			
+
 			log.info("Entering method: sendDataToOtherSortNodes");
 			sendDataToOtherSortNodes();
 			log.info("Leaving method: sendDataToOtherSortNodes");
@@ -138,7 +137,7 @@ public class SortNode {
 		JSONParser parser = new JSONParser();
 		Map<String, Integer> ipToCountOfRequests = new HashMap<String, Integer>();
 		Map<String, StringBuilder> ipToActualRequestString = new HashMap<String, StringBuilder>();
-		
+
 		JSONObject entireJSON = null;
 		try {
 			entireJSON = (JSONObject) parser.parse(jsonPartitions);
@@ -180,15 +179,12 @@ public class SortNode {
 
 		// Read local data line by line
 		File[] dataFolder = listDirectory(System.getProperty("user.dir"));
-		try {
-			int count = 0;
-			for (File file : dataFolder) {
+		for (File file : dataFolder) {
+			try (BufferedReader br = new BufferedReader(new InputStreamReader(new GZIPInputStream(new FileInputStream(file))))){
+				int count = 0;
 				if (!checkFileExtensionsIsGz(file.getName()))
 					continue;
 				log.info(String.format("[%s] The file getting read: %s", INSTANCE_IP, file));
-				FileInputStream fis = new FileInputStream(file);
-				InputStream gzipStream = new GZIPInputStream(fis);
-				BufferedReader br = new BufferedReader(new InputStreamReader(gzipStream));
 				CSVReader reader = new CSVReader(br);
 				String[] line = null;
 				reader.readNext();
@@ -225,15 +221,14 @@ public class SortNode {
 					}
 				}
 				reader.close();
-				br.close();
 				count++;
 				log.info("No of files processed: " + count);
+			} catch (Exception e) {
+				log.severe("Failed while parsing value: " + e.getLocalizedMessage());
+				StringWriter errors = new StringWriter();
+				e.printStackTrace(new PrintWriter(errors));
+				log.severe("Stacktrace: " + errors.toString());
 			}
-		} catch (Exception e) {
-			log.severe("Failed while parsing value: " + e.getLocalizedMessage());
-			StringWriter errors = new StringWriter();
-			e.printStackTrace(new PrintWriter(errors));
-			log.severe("Stacktrace: " + errors.toString());
 		}
 
 		for (String ipAddress : ipToCountOfRequests.keySet()) {
@@ -259,6 +254,7 @@ public class SortNode {
 			for (String record : records) {
 				dataFromOtherNodes.add(record.split(","));
 			}
+			records = null;
 			log.info("Data from other nodes has size: " + dataFromOtherNodes.size());
 			response.status(200);
 			response.body("Awesome");
@@ -296,7 +292,7 @@ public class SortNode {
 	 * 
 	 */
 	public static void readPartitionsFromClient() {
-		
+
 		post("/partitions", (request, response) -> {
 			log.info("Received partitions from the client!");
 			log.info("Partition is as follows: " + request.body());
@@ -306,7 +302,7 @@ public class SortNode {
 			partitionReceived = true;
 			return response.body().toString();
 		});
-		
+
 		while (!partitionReceived) {
 			try {
 				Thread.sleep(20000);
@@ -314,7 +310,6 @@ public class SortNode {
 			} catch (InterruptedException e) {
 				log.info("Thread interrupted");
 			}
-			
 		}
 		log.info("Out of while loop");
 	}
@@ -330,6 +325,8 @@ public class SortNode {
 		ipToActualRequestString.put(instanceIp, new StringBuilder());
 		ipToCountOfRequests.put(instanceIp, 0);
 		String recordList = sb.deleteCharAt(sb.length()-1).toString();
+		sb = null;
+		System.gc();
 		NodeCommWrapper.SendData(instanceIp, PORT_FOR_COMM, RECORDS_URL, recordList);
 	}
 

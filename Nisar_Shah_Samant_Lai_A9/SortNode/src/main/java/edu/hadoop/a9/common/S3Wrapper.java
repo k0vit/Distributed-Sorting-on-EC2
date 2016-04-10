@@ -75,6 +75,7 @@ public class S3Wrapper {
 		} catch (AmazonClientException | InterruptedException e) {
 			log.severe("Failed downloading the file " + filename + ". Reason " + e.getMessage());
 		}
+		tx.shutdownNow();
 		return filename;
 	}
 

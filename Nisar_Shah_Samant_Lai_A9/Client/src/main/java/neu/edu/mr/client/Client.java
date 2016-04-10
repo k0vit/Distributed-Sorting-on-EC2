@@ -172,7 +172,8 @@ public class Client {
 		LOG.info("Mod count " + mod);
 		for (int j = 0, i = 0; j < SLAVE_NUM; j++) {
 			StringBuilder sb = new StringBuilder();
-			for (int k = i; i - k < share && i < FILE_NUM; i++) {
+			int k = i;
+			for (; i - k < share && i < FILE_NUM; i++) {
 				sb.append(DELIMITER_OF_FILE);
 				sb.append(files.get(i));
 			}
@@ -180,8 +181,8 @@ public class Client {
 				sb.append(DELIMITER_OF_FILE);
 				sb.append(files.get(i++));
 			}
-			LOG.info("Share for node " + j + " is " + i);
-			sb.deleteCharAt(0);
+			LOG.info("Share for node " + j + " is " + i+" return: "+sb.toString());
+			if (sb.length()>0) sb.deleteCharAt(0);
 			shares.add(sb.toString());
 		}
 		return shares;

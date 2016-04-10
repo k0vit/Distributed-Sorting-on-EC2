@@ -26,6 +26,8 @@ public class ShufflingTask implements Runnable {
 	private List<String[]> unsortedData;
 	Map<String, Integer> ipToCountOfRequests;
 	Map<String, StringBuilder> ipToActualRequestString;
+	int count;
+
 	public ShufflingTask(File f, Map<String, Double> ipToMaxMap, Map<String, Double> ipToMinMap, String instanceIP) {
 		this.file = f;
 		this.ipToMaxMap = ipToMaxMap;
@@ -34,7 +36,7 @@ public class ShufflingTask implements Runnable {
 		this.ipToCountOfRequests = new HashMap<String, Integer>(ipToMaxMap.size());
 		this.ipToActualRequestString = new HashMap<String, StringBuilder>(ipToMaxMap.size());
 		unsortedData = new LinkedList<>();
-		
+
 	}
 
 	public void run() {
@@ -65,7 +67,7 @@ public class ShufflingTask implements Runnable {
 								if (!ipToActualRequestString.containsKey(instanceIp)) {
 									ipToActualRequestString.put(instanceIp, new StringBuilder());
 								}
-								
+
 								if (ipToCountOfRequests.get(instanceIp) < SortNode.NUMBER_OF_REQUESTS_STORED) {
 									ipToCountOfRequests.put(instanceIp, ipToCountOfRequests.get(instanceIp) + 1);
 									ipToActualRequestString.put(instanceIp,
@@ -73,7 +75,13 @@ public class ShufflingTask implements Runnable {
 								} else {
 									ipToActualRequestString.put(instanceIp,
 											ipToActualRequestString.get(instanceIp).append(Arrays.toString(line) + ":"));
-									SortNode.sendRequestToSortNode(instanceIp, ipToCountOfRequests, ipToActualRequestString);
+									count++;
+									StringBuilder sb = ipToActualRequestString.get(instanceIp);
+									ipToActualRequestString.put(instanceIp, new StringBuilder());
+									ipToCountOfRequests.put(instanceIp, 0);
+									String recordList = sb.deleteCharAt(sb.length()-1).toString();
+									SortNode.sendRequestToSortNode(recordList, instanceIp + file.getName() + count,
+											instanceIp);
 								}
 							}
 							break;
@@ -85,11 +93,15 @@ public class ShufflingTask implements Runnable {
 			SortNode.filesShuffledCount.getAndIncrement();
 			log.info("No of files processed: " + SortNode.filesShuffledCount.get());
 			SortNode.addUnsortedData(unsortedData);
-			
+
 			for (String ipAddress : ipToCountOfRequests.keySet()) {
 				log.info("Flush out remaining data to Sort Node: " + ipAddress);
 				if (ipToCountOfRequests.get(ipAddress) > 0) {
-					SortNode.sendRequestToSortNode(ipAddress, ipToCountOfRequests, ipToActualRequestString);
+					StringBuilder sb = ipToActualRequestString.get(ipAddress);
+					ipToActualRequestString.put(ipAddress, new StringBuilder());
+					ipToCountOfRequests.put(ipAddress, 0);
+					String recordList = sb.deleteCharAt(sb.length()-1).toString();
+					SortNode.sendRequestToSortNode(recordList, ipAddress + file.getName() + (++count), ipAddress);
 				}
 			}
 		} catch (Exception e) {
@@ -100,3 +112,4 @@ public class ShufflingTask implements Runnable {
 		}
 	}
 }
+

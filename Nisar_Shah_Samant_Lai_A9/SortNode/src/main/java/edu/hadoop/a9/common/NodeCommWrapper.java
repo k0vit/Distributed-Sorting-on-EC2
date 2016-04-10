@@ -18,7 +18,7 @@ public class NodeCommWrapper {
 	
 	public static void SendData(String clientIp, String port, String requestUrl, String data, String fileName) {
 		String address = "http://" + clientIp + ":" + port + "/" + requestUrl;
-		log.info(String.format("[%s] Sending data to %s", fileName, address));
+		log.info(String.format("[%s] Sending data to %s:%s", fileName, address,data));
 //		log.info("Sending data: " + data);
 		try {
 			Unirest.setTimeouts(10000, 120000);

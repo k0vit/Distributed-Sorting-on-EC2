@@ -1,7 +1,6 @@
 package edu.hadoop.a9.slave;
 
 import static spark.Spark.post;
-import static spark.Spark.threadPool;
 
 import java.io.BufferedReader;
 import java.io.File;
@@ -10,9 +9,7 @@ import java.io.IOException;
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.net.InetAddress;
-import java.util.Arrays;
 import java.util.Collections;
-import java.util.Comparator;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
@@ -46,11 +43,8 @@ public class SortNode {
 	static Double MAXIMUM_PARTITION;
 	static String INSTANCE_IP;
 	static long INSTANCE_ID;
-	static List<String[]> unsortedData = new LinkedList<String[]>();
-	// To avoid synchronization issues create one more list of records.
-	static List<String[]> dataFromOtherNodes = Collections.synchronizedList(new LinkedList<String[]>());
 	public static final String PORT_FOR_COMM = "4567";
-	public static final int NUMBER_OF_REQUESTS_STORED = 300000;
+	public static final int NUMBER_OF_REQUESTS_STORED = 90000;
 	public static final String PARTITION_URL = "partitions";
 	public static final String END_URL = "end";
 	public static final String END_OF_SORTING_URL = "signals";
@@ -60,6 +54,10 @@ public class SortNode {
 	static boolean partitionReceived = false;
 	static int NO_OF_NODES_WITH_WORK = 0;
 	public static AtomicInteger filesShuffledCount = new AtomicInteger(0);
+	public static List<String> s3FileLocation = Collections.synchronizedList(new LinkedList<String>());
+	public static List<String[]> unsortedData = Collections.synchronizedList(new LinkedList<String[]>());
+	public static S3Wrapper wrapper;
+	public static String outputS3Path;
 
 	public static void main(String[] args) {
 		if (args.length != 5) {
@@ -76,7 +74,7 @@ public class SortNode {
 				args[2]));
 
 		String inputS3Path = args[0];
-		String outputS3Path = args[1];
+		outputS3Path = args[1];
 		String configFilePath = args[2];
 		accessKey = args[3];
 		secretKey = args[4];
@@ -89,7 +87,7 @@ public class SortNode {
 			log.info("Instance IP: " + INSTANCE_IP);
 			BasicAWSCredentials awsCredentials = new BasicAWSCredentials(accessKey, secretKey);
 			AmazonS3Client s3client = new AmazonS3Client(awsCredentials);
-			S3Wrapper wrapper = new S3Wrapper(s3client);
+			wrapper = new S3Wrapper(s3client);
 
 			// This downloads the config file on the local directory.
 			configFileName = wrapper.readOutputFromS3(configFilePath, awsCredentials, configFileName);
@@ -121,11 +119,9 @@ public class SortNode {
 			sendDataToOtherSortNodes();
 			log.info("Leaving method: sendDataToOtherSortNodes");
 
-
 		} catch (IOException e) {
 			log.severe(e.getMessage());
 		}
-
 	}
 
 	/**
@@ -208,8 +204,8 @@ public class SortNode {
 		}
 	}
 	
-	public static synchronized void addUnsortedData(List<String[]> unsortedData) {
-		unsortedData.addAll(unsortedData);
+	public static synchronized void addUnsortedData(List<String[]> unsortedDat) {
+		unsortedData.addAll(unsortedDat);
 	}
 
 	/**
@@ -219,13 +215,13 @@ public class SortNode {
 
 		post("/records", (request, response) -> {
 			String recordList = request.body();
-			String[] records = recordList.split(":");
-			log.info(String.format("Received %s records from [%s]", records.length, request.ip()));
+			String[] records = recordList.split(",");
+			log.info(String.format("Received %s records from [%s]", records, request.ip()));
 			for (String record : records) {
-				dataFromOtherNodes.add(record.split(","));
+				s3FileLocation.add(record);
 			}
 			records = null;
-			log.info("Data from other nodes has size: " + dataFromOtherNodes.size());
+			log.info("Data files from other nodes has size: " + s3FileLocation.size());
 			response.status(200);
 			response.body("Awesome");
 			return response.body().toString();
@@ -244,8 +240,10 @@ public class SortNode {
 			if (NO_OF_SORT_NODES_WHERE_DATA_IS_RECEIVED.get() == NO_OF_NODES_WITH_WORK) {
 				log.info("Received data from all sort nodes");
 				log.info("Start sorting data....");
-				sortYourOwnData();
-				if (wrapper.uploadFileS3(outputS3Path, unsortedData, INSTANCE_ID, awsCredentials)) {
+				log.info("Files to sort from " + s3FileLocation);
+				//sortYourOwnData();
+				//if (wrapper.uploadFileS3(outputS3Path, unsortedData, INSTANCE_ID)) {
+				if (true) {
 					log.info("THis is INSTANCE_ID: " + INSTANCE_ID);
 					log.info(String.format("Data uploaded to S3 @ %s", outputS3Path));
 					NodeCommWrapper.SendData(clientIp, PORT_FOR_COMM, END_OF_SORTING_URL, "SORTED");
@@ -263,8 +261,6 @@ public class SortNode {
 	 */
 	public static void readPartitionsFromClient() {
 		
-		threadPool(8);
-
 		post("/partitions", (request, response) -> {
 			log.info("Received partitions from the client!");
 			log.info("Partition is as follows: " + request.body());
@@ -291,14 +287,9 @@ public class SortNode {
 	 * @param ipToCountOfRequests
 	 * @param ipToActualRequestString
 	 */
-	public static void sendRequestToSortNode(String instanceIp, Map<String, Integer> ipToCountOfRequests,
-			Map<String, StringBuilder> ipToActualRequestString) {
-		StringBuilder sb = ipToActualRequestString.get(instanceIp);
-		ipToActualRequestString.put(instanceIp, new StringBuilder());
-		ipToCountOfRequests.put(instanceIp, 0);
-		String recordList = sb.deleteCharAt(sb.length()-1).toString();
-		sb = null;
-		NodeCommWrapper.SendData(instanceIp, PORT_FOR_COMM, RECORDS_URL, recordList);
+	public static void sendRequestToSortNode(String recordList, String fileName, String instanceIp) {
+		wrapper.uploadStringData(recordList, outputS3Path + "/" + instanceIp + "/" + fileName);
+		NodeCommWrapper.SendData(instanceIp, PORT_FOR_COMM, RECORDS_URL, fileName);
 	}
 
 	/**
@@ -391,7 +382,7 @@ public class SortNode {
 	/**
 	 * 
 	 */
-	private static void sortYourOwnData() {
+	/*private static void sortYourOwnData() {
 		log.info("Sorting sort node data now...");
 		unsortedData.addAll(dataFromOtherNodes);
 		Collections.sort(unsortedData, new Comparator<String[]>() {
@@ -409,7 +400,7 @@ public class SortNode {
 			}
 		});
 		log.info("Sorting sort node data finished !");
-	}
+	}*/
 
 	/**
 	 * 
@@ -424,3 +415,4 @@ public class SortNode {
 	}
 
 }
+

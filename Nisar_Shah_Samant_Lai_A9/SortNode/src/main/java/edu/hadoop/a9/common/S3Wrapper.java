@@ -1,5 +1,6 @@
 package edu.hadoop.a9.common;
 
+import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
@@ -95,7 +96,34 @@ public class S3Wrapper {
 		String folder = removeS3(s3OutputPath);
 		String bucket = folder;
 		String remote = local.getName();
-		s3client.putObject(new PutObjectRequest(bucket, remote, local));
+		try{
+			s3client.putObject(new PutObjectRequest(bucket, remote, local));
+		} catch (Exception e){
+			log.severe("Failed to upload file: "+local.getName()+" :"+e.getMessage());
+		}
+		return true;
+	}
+	
+	public boolean uploadStringData(String data, String outputPath) {
+		byte[] bytedata = data.getBytes();
+//		InputStream is = new ByteArrayInputStream(bytedata);
+		String simplifiedPath = (outputPath.replace("s3://", ""));
+		int index = simplifiedPath.indexOf("/");
+		String bucketName = simplifiedPath.substring(0, index);
+		String key = simplifiedPath.substring(index + 1);
+		log.info("Uploading file to bucket " + bucketName + " with key as " + key);
+		TransferManager tx = new TransferManager(s3client);
+		ObjectMetadata meta = new ObjectMetadata();
+		meta.setContentLength(bytedata.length);
+		
+		try(InputStream is = new ByteArrayInputStream(bytedata)) {
+			Upload up = tx.upload(bucketName, key, is, meta);
+			up.waitForCompletion();
+		} catch (AmazonClientException | InterruptedException | IOException e) {
+			log.severe("Failed uploading the file " + outputPath + ". Reason " + e.getMessage());
+			return false;
+		}
+		log.info("Full file uploaded to S3 at the path: " + outputPath);
 		return true;
 	}
 
@@ -127,8 +155,8 @@ public class S3Wrapper {
 		return fileString;
 	}
 	
-	public boolean uploadFileS3(String outputS3Path, List<String[]> nowSortedData, long instanceId,  BasicAWSCredentials awsCredentials) {
-		TransferManager tx = new TransferManager(awsCredentials);
+	public boolean uploadFileS3(String outputS3Path, List<String[]> nowSortedData, long instanceId) {
+		TransferManager tx = new TransferManager(s3client);
 		String fileName = "part-r-" + instanceId + ".csv";
 		try {
 			CSVWriter writer = new CSVWriter(new FileWriter(fileName));
@@ -153,9 +181,9 @@ public class S3Wrapper {
 		log.info("Full file uploaded to S3 at the path: " + s3FullPath);
 		return true;
 	}
-	
 
 	private static final Logger log = Logger.getLogger(S3Wrapper.class.getName());
 	private AmazonS3 s3client;
 
 }
+

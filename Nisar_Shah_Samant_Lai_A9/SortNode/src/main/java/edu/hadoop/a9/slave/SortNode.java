@@ -27,6 +27,8 @@ import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Logger;
 
+import org.jets3t.service.Constants;
+import org.jets3t.service.Jets3tProperties;
 import org.jets3t.service.S3Service;
 import org.jets3t.service.impl.rest.httpclient.RestS3Service;
 import org.jets3t.service.model.S3Bucket;
@@ -98,6 +100,16 @@ public class SortNode {
 		secretKey = args[4];
 		String configFileName = configFilePath.substring(configFilePath.lastIndexOf("/") + 1);
 
+		// Load your default settings from jets3t.properties file on the classpath
+		Jets3tProperties myProperties =
+				Jets3tProperties.getInstance(Constants.JETS3T_PROPERTIES_FILENAME);
+
+		// Override default properties (increase number of connections and
+//		myProperties.setProperty("httpclient.max-connections", "100");
+		myProperties.setProperty("threaded-service.max-thread-count", "8");
+		myProperties.setProperty("threaded-service.admin-max-thread-count", "8");
+		myProperties.setProperty("s3service.max-thread-count", "8");
+		
 		log.info("Application Initialized");
 
 		try {
@@ -188,7 +200,7 @@ public class SortNode {
 		}
 
 		// Read local data line by line
-		ThreadPoolExecutor executor = (ThreadPoolExecutor) Executors.newCachedThreadPool();
+		ThreadPoolExecutor executor = (ThreadPoolExecutor) Executors.newFixedThreadPool(8);
 		File[] dataFolder = listDirectory(System.getProperty("user.dir"));
 		int totalFiles = 0;
 		for (File file : dataFolder) {

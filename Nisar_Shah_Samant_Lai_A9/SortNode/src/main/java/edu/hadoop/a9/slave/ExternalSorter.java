@@ -9,14 +9,17 @@ import java.util.logging.Logger;
 
 import com.google.code.externalsorting.ExternalSort;
 
+/**
+ * This will external sort the file in local.
+ * 
+ * @author yuanjian.
+ *
+ */
 public class ExternalSorter {
-	
-	private final static Logger LOGGER = Logger.getLogger("External Sorter");
-//	public static void main(String[] args) throws IOException {
-//		externalSort("./testdata", "result");
-//	}
 
-	public static void externalSort(String file,String output) throws IOException {
+	private final static Logger LOGGER = Logger.getLogger("External Sorter");
+
+	public static void externalSort(String file, String output) throws IOException {
 		List<File> l = ExternalSort.sortInBatch(new File(file), new Comparator<String>() {
 
 			@Override
@@ -24,7 +27,7 @@ public class ExternalSorter {
 				try {
 					return o1.split(",")[8].compareTo(o2.split(",")[8]);
 				} catch (Exception e) {
-					LOGGER.log(Level.WARNING, "corrupted line found: str1:"+o1+"\n str2:"+o2);
+					LOGGER.log(Level.WARNING, "corrupted line found: str1:" + o1 + "\n str2:" + o2);
 					return 1;
 				}
 			}

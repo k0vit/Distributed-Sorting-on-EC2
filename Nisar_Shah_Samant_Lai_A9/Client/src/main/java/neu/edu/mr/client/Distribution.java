@@ -2,8 +2,6 @@ package neu.edu.mr.client;
 
 import java.io.File;
 import java.io.FileReader;
-import java.io.PrintWriter;
-import java.io.StringWriter;
 import java.util.ArrayList;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -43,14 +41,13 @@ public class Distribution {
 		for (String num : samplesArr) {
 			try {
 				samples.add(Double.parseDouble(num));
-			}
-			catch (Exception e) {
-				LOG.log(Level.SEVERE, "Ignoring sample because failed parsing sample : " + num + 
-						". Reason:" + e.getMessage());
+			} catch (Exception e) {
+				LOG.log(Level.SEVERE,
+						"Ignoring sample because failed parsing sample : " + num + ". Reason:" + e.getMessage());
 			}
 		}
 		LOG.info("Received samples " + samples.size());
-	} 
+	}
 
 	public ArrayList<Double> getSamples() {
 		return samples;

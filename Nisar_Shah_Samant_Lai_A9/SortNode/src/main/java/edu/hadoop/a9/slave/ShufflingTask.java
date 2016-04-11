@@ -16,6 +16,15 @@ import java.util.zip.GZIPInputStream;
 
 import com.opencsv.CSVReader;
 
+/**
+ * Basically for each file in the local fileSystem go through each line and
+ * decide based on the partitions given by client whether to keep the record to
+ * itself or pass to another sort node.
+ * 
+ * @author Kovit Nisar
+ * @author Naineel Shah
+ *
+ */
 public class ShufflingTask implements Runnable {
 
 	private File file;
@@ -28,8 +37,7 @@ public class ShufflingTask implements Runnable {
 	int count;
 	private FileWriter fw;
 
-	public ShufflingTask(File f, Map<String, Double> ipToMaxMap, Map<String, Double> ipToMinMap,
-			String instanceIP) {
+	public ShufflingTask(File f, Map<String, Double> ipToMaxMap, Map<String, Double> ipToMinMap, String instanceIP) {
 		this.file = f;
 		this.ipToMaxMap = ipToMaxMap;
 		this.ipToMinMap = ipToMinMap;
@@ -51,8 +59,15 @@ public class ShufflingTask implements Runnable {
 		}
 	}
 
+	/**
+	 * Create a folder for the other IP instances and create a file of the
+	 * records which are a part of that IP instance. If the record belongs to
+	 * the SOrt Node itself then it will be written to the file named
+	 * INSTANCE_IP + "-allhourly.csv"
+	 */
 	public void run() {
-		try (BufferedReader br = new BufferedReader(new InputStreamReader(new GZIPInputStream(new FileInputStream(file))))){
+		try (BufferedReader br = new BufferedReader(
+				new InputStreamReader(new GZIPInputStream(new FileInputStream(file))))) {
 			CSVReader reader = new CSVReader(br);
 			String[] line = null;
 			reader.readNext();
@@ -63,36 +78,35 @@ public class ShufflingTask implements Runnable {
 					try {
 						dryBulbTemp = Double.parseDouble(line[SortNode.DRY_BULB_COL]);
 					} catch (Exception e) {
-						log.info(String.format("[%s] Failed to parse value to Double: %s", file.getName(), line[SortNode.DRY_BULB_COL]));
+						log.info(String.format("[%s] Failed to parse value to Double: %s", file.getName(),
+								line[SortNode.DRY_BULB_COL]));
 						continue;
 					}
 					// Check which partition it lies within and send to
 					// the sortNode required
 					for (String instanceIp : ipToMaxMap.keySet()) {
-						if (dryBulbTemp >= ipToMinMap.get(instanceIp)
-								&& dryBulbTemp <= ipToMaxMap.get(instanceIp)) {
+						if (dryBulbTemp >= ipToMinMap.get(instanceIp) && dryBulbTemp <= ipToMaxMap.get(instanceIp)) {
 							if (instanceIp.equals(INSTANCE_IP)) {
 								fw.write(Arrays.toString(line));
 							} else {
 								String fileNameWithoutFormat = file.getName().replace(".txt.gz", "");
 								File directory = new File(instanceIp);
-								
+
 								if (!directory.isDirectory()) {
 									directory.mkdir();
 									log.info("Creating directory: " + directory.getName());
 								}
-								
-								File f = new File(instanceIp, instanceIp+ "-" + fileNameWithoutFormat + ".csv");
+
+								File f = new File(instanceIp, instanceIp + "-" + fileNameWithoutFormat + ".csv");
 								if (!f.exists()) {
 									f.createNewFile();
 									log.info("Trying to create a file named: " + f.getName());
 								}
-								
+
 								FileWriter localfw = new FileWriter(f, true);
 								localfw.write(Arrays.toString(line) + "\n");
 								localfw.close();
-								
-								
+
 							}
 							break;
 						}
@@ -111,4 +125,3 @@ public class ShufflingTask implements Runnable {
 		}
 	}
 }
-

@@ -24,11 +24,24 @@ import com.amazonaws.services.s3.transfer.TransferManager;
 import com.amazonaws.services.s3.transfer.Upload;
 import com.opencsv.CSVWriter;
 
+/**
+ * Create a wrapper class to access S3 functions.
+ * 
+ * @author dipti Samant
+ *
+ */
 public class S3Wrapper {
 	public S3Wrapper(AmazonS3 s3client) {
 		this.s3client = s3client;
 	}
 
+	/**
+	 * List objects of the given path.
+	 * 
+	 * @param bucketName
+	 * @param prefix
+	 * @return
+	 */
 	public List<String> getListOfObjects(String bucketName, String prefix) {
 		log.info(String.format("Requesting object listing for s3://%s/%s", bucketName, prefix));
 
@@ -49,6 +62,13 @@ public class S3Wrapper {
 		return files;
 	}
 
+	/**
+	 * Obtain an input stream to read from given the path to S3.
+	 * 
+	 * @param bucketName
+	 * @param objectId
+	 * @return
+	 */
 	public InputStream getObjectInputStream(String bucketName, String objectId) {
 		log.info(String.format("Requesting for object: s3://%s/%s", bucketName, objectId));
 
@@ -62,6 +82,14 @@ public class S3Wrapper {
 		return object.getObjectContent();
 	}
 
+	/**
+	 * Download the given file to the outputpath specified.
+	 * 
+	 * @param outputPath
+	 * @param cred
+	 * @param filename
+	 * @return
+	 */
 	public String readOutputFromS3(String outputPath, BasicAWSCredentials cred, String filename) {
 		TransferManager tx = new TransferManager(cred);
 		String simplifiedPath = (outputPath.replace("s3://", ""));
@@ -81,6 +109,7 @@ public class S3Wrapper {
 	}
 
 	/**
+	 * upload given file to the output path specified.
 	 * 
 	 * @param file
 	 *            File to be uploaded.
@@ -96,17 +125,24 @@ public class S3Wrapper {
 		String folder = removeS3(s3OutputPath);
 		String bucket = folder;
 		String remote = local.getName();
-		try{
+		try {
 			s3client.putObject(new PutObjectRequest(bucket, remote, local));
-		} catch (Exception e){
-			log.severe("Failed to upload file: "+local.getName()+" :"+e.getMessage());
+		} catch (Exception e) {
+			log.severe("Failed to upload file: " + local.getName() + " :" + e.getMessage());
 		}
 		return true;
 	}
-	
+
+	/**
+	 * Upload data to the output path.
+	 * 
+	 * @param data
+	 * @param outputPath
+	 * @return
+	 */
 	public boolean uploadStringData(String data, String outputPath) {
 		byte[] bytedata = data.getBytes();
-//		InputStream is = new ByteArrayInputStream(bytedata);
+		// InputStream is = new ByteArrayInputStream(bytedata);
 		String simplifiedPath = (outputPath.replace("s3://", ""));
 		int index = simplifiedPath.indexOf("/");
 		String bucketName = simplifiedPath.substring(0, index);
@@ -115,8 +151,8 @@ public class S3Wrapper {
 		TransferManager tx = new TransferManager(s3client);
 		ObjectMetadata meta = new ObjectMetadata();
 		meta.setContentLength(bytedata.length);
-		
-		try(InputStream is = new ByteArrayInputStream(bytedata)) {
+
+		try (InputStream is = new ByteArrayInputStream(bytedata)) {
 			Upload up = tx.upload(bucketName, key, is, meta);
 			up.waitForCompletion();
 		} catch (AmazonClientException | InterruptedException | IOException e) {
@@ -126,24 +162,27 @@ public class S3Wrapper {
 		log.info("Full file uploaded to S3 at the path: " + outputPath);
 		return true;
 	}
-	
-//	public boolean uploadStringData(String data, String outputPath) {
-//		InputStream is = new ByteArrayInputStream(data.getBytes());
-//		String simplifiedPath = (outputPath.replace("s3://", ""));
-//		int index = simplifiedPath.indexOf("/");
-//		String bucketName = simplifiedPath.substring(0, index);
-//		String key = simplifiedPath.substring(index + 1);
-//		log.info("Uploading file to bucket " + bucketName + " with key as " + key);
-//		s3client.putObject(new PutObjectRequest(bucketName, key, is, new ObjectMetadata()));
-//		return true;
-//	}
 
+	/**
+	 * Utility method.
+	 * 
+	 * @param path
+	 * @return
+	 */
 	private static String removeS3(String path) {
 		if (!path.startsWith("s3://"))
 			return path;
 		return path.substring("s3://".length());
 	}
 
+	/**
+	 * Upload a list of records to the output path after creating a csv file.
+	 * 
+	 * @param outputS3Path
+	 * @param nowSortedData
+	 * @param instanceId
+	 * @return
+	 */
 	public boolean uploadDataToS3(String outputS3Path, List<String[]> nowSortedData, long instanceId) {
 		String fileName = "part-r-" + instanceId + ".csv";
 		try {
@@ -159,13 +198,30 @@ public class S3Wrapper {
 		return false;
 	}
 
-	public String downloadAndStoreFileInLocal(String fileString, BasicAWSCredentials awsCredentials, String inputS3Path) {
+	/**
+	 * DOwnload the file from the S3 path and store in local file system.
+	 * 
+	 * @param fileString
+	 * @param awsCredentials
+	 * @param inputS3Path
+	 * @return
+	 */
+	public String downloadAndStoreFileInLocal(String fileString, BasicAWSCredentials awsCredentials,
+			String inputS3Path) {
 		String s3FullPath = inputS3Path + "/" + fileString;
 		log.info(String.format("[%s] Downloading from s3 full path: %s", fileString, s3FullPath));
 		readOutputFromS3(s3FullPath, awsCredentials, fileString);
 		return fileString;
 	}
-	
+
+	/**
+	 * Upload the file to S3 using Transfer Manager.
+	 * 
+	 * @param outputS3Path
+	 * @param nowSortedData
+	 * @param instanceId
+	 * @return
+	 */
 	public boolean uploadFileS3(String outputS3Path, List<String[]> nowSortedData, long instanceId) {
 		TransferManager tx = new TransferManager(s3client);
 		String fileName = "part-r-" + instanceId + ".csv";
@@ -197,4 +253,3 @@ public class S3Wrapper {
 	private AmazonS3 s3client;
 
 }
-

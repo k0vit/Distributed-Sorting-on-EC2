@@ -14,11 +14,19 @@ import com.amazonaws.services.s3.AmazonS3Client;
 import edu.hadoop.a9.common.NodeCommWrapper;
 import edu.hadoop.a9.common.S3Wrapper;
 
+/**
+ * This is the thread task which will download the files it is assigned from the
+ * client in a multithreaded way.
+ * 
+ * @author Naineel Shah
+ * @author Kovit Nisar
+ *
+ */
 public class Task implements Runnable {
 	private final String filename;
 	private static final Logger log = Logger.getLogger(Task.class.getName());
 	private static final int BULBTEMP_INDEX = 8;
-	// Using 10% of 300000 data for sampling
+	// Using these many data points for sampling
 	private static final int TOTAL_DATA_SAMPLES = 80000;
 	private final String clientIp;
 	private static final String CLIENT_PORT = "4567";
@@ -33,6 +41,10 @@ public class Task implements Runnable {
 		this.inputS3Path = inputS3Path;
 	}
 
+	/**
+	 * Downloads each file in the local file system. Samples the given files and
+	 * send the distribution to the client to create partitions.
+	 */
 	public void run() {
 		try {
 			AmazonS3Client s3client = new AmazonS3Client(awsCredentials);
@@ -49,14 +61,21 @@ public class Task implements Runnable {
 		}
 	}
 
+	/**
+	 * For a given file, Sample the file and create the sampled data as a String
+	 * separated by ,
+	 * 
+	 * @param fileName
+	 * @return
+	 */
 	public String GetDistribution(String fileName) {
 		File file = new File(System.getProperty("user.dir") + File.separator + fileName);
 		log.info(String.format("[%s] Get distribution for file: %s", fileName, file.getAbsolutePath()));
 		StringBuilder commaSeparatedString = new StringBuilder();
 		Random rnd = new Random();
 		String sampledData = null;
-		try (BufferedReader br = new BufferedReader
-				(new InputStreamReader(new GZIPInputStream(new FileInputStream(file))))){
+		try (BufferedReader br = new BufferedReader(
+				new InputStreamReader(new GZIPInputStream(new FileInputStream(file))))) {
 			int samplesTaken = 0;
 			int totalSamplesToTake = TOTAL_DATA_SAMPLES;
 			String line = null;
@@ -78,11 +97,11 @@ public class Task implements Runnable {
 				}
 			}
 		} catch (Exception e) {
-			log.severe("Exception while reading data. Reason:"+ e.getMessage());
+			log.severe("Exception while reading data. Reason:" + e.getMessage());
 			commaSeparatedString = null;
 			return "";
 		}
-		
+
 		log.info(String.format("File: %s is now sampled.", fileName));
 		commaSeparatedString.deleteCharAt(commaSeparatedString.length() - 1);
 		sampledData = commaSeparatedString.toString();

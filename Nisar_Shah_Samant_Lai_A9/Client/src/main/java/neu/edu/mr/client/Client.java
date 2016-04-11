@@ -143,15 +143,13 @@ public class Client {
 				LOG.severe("Sleeping for 10 seconds to retry");
 				try {
 					Thread.sleep(10000);
-				} 
-				catch (Exception ex) {
+				} catch (Exception ex) {
 					LOG.severe("Failed to sleep " + ex.getMessage());
 				}
 				try {
 					LOG.severe("Retrying " + req);
 					Unirest.post(req).body(filesShare).asString();
-				} 
-				catch (Exception exx) {
+				} catch (Exception exx) {
 					LOG.severe("Failed to retry to post " + req);
 				}
 			}
@@ -181,8 +179,9 @@ public class Client {
 				sb.append(DELIMITER_OF_FILE);
 				sb.append(files.get(i++));
 			}
-			LOG.info("Share for node " + j + " is " + i+" return: "+sb.toString());
-			if (sb.length()>0) sb.deleteCharAt(0);
+			LOG.info("Share for node " + j + " is " + i + " return: " + sb.toString());
+			if (sb.length() > 0)
+				sb.deleteCharAt(0);
 			shares.add(sb.toString());
 		}
 		return shares;

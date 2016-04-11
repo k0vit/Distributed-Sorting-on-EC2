@@ -19,3 +19,6 @@ dist_sort:
 	chmod 777 sshToRun.sh
 	./sshToRun.sh $(INPUT_PATH) $(OUTPUT_PATH)
 	java -jar nisar_shah_lai_samant_a9-0.0.1-SNAPSHOT-jar-with-dependencies.jar terminate $(OUTPUT_PATH) > cluster_manager_terminate.txt 2>&1
+
+terminate:
+	java -jar nisar_shah_lai_samant_a9-0.0.1-SNAPSHOT-jar-with-dependencies.jar terminate $(OUTPUT_PATH) > cluster_manager_terminate.txt 2>&1

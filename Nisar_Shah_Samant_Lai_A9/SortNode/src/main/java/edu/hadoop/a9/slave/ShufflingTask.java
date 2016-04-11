@@ -36,8 +36,16 @@ public class ShufflingTask implements Runnable {
 		this.INSTANCE_IP = instanceIP;
 		this.ipToCountOfRequests = new HashMap<String, Integer>(ipToMaxMap.size());
 		this.ipToActualRequestString = new HashMap<String, StringBuilder>(ipToMaxMap.size());
+		File fil = new File(INSTANCE_IP + "-allhourly.csv");
+		if (!f.exists()) {
+			try {
+				f.createNewFile();
+			} catch (IOException e) {
+				log.info("Could not create a new file: " + f.getAbsolutePath());
+			}
+		}
 		try {
-			this.fw = new FileWriter(new File(INSTANCE_IP + "-allhourly.csv"));
+			this.fw = new FileWriter(fil);
 		} catch (IOException e) {
 			log.severe("Could not create a new file: " + f.getAbsolutePath());
 		}
@@ -91,7 +99,7 @@ public class ShufflingTask implements Runnable {
 					}
 				}
 			}
-			fw.flush();
+			fw.close();
 			reader.close();
 			SortNode.filesShuffledCount.getAndIncrement();
 			log.info("No of files processed: " + SortNode.filesShuffledCount.get());

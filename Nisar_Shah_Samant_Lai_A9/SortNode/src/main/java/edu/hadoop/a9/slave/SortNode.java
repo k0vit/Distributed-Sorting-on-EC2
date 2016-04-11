@@ -23,6 +23,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Logger;
 
@@ -76,7 +77,7 @@ public class SortNode {
 	//	public static List<String[]> unsortedData = Collections.synchronizedList(new LinkedList<String[]>());
 	public static S3Wrapper wrapper;
 	public static String outputS3Path;
-	private static FileWriter fw;
+//	private static FileWriter fw;
 
 	public static void main(String[] args) {
 		if (args.length != 5) {
@@ -199,21 +200,6 @@ public class SortNode {
 			}
 		}
 
-
-		File f = new File(INSTANCE_IP + "-allhourly.csv");
-		if (!f.exists()) {
-			try {
-				f.createNewFile();
-			} catch (IOException e) {
-				log.info("Could not create a new file: " + f.getAbsolutePath());
-			}
-		}
-		try {
-			fw = new FileWriter(f);
-		} catch (IOException e) {
-			log.info("Could not open file for writing: " + f.getAbsolutePath());
-		}
-
 		// Read local data line by line
 		ThreadPoolExecutor executor = (ThreadPoolExecutor) Executors.newFixedThreadPool(8);
 		File[] dataFolder = listDirectory(System.getProperty("user.dir"));
@@ -229,30 +215,23 @@ public class SortNode {
 		log.info("Executor shutdown");
 		executor.shutdown();
 
-		/*try {
+		try {
 			executor.awaitTermination(Long.MAX_VALUE, TimeUnit.NANOSECONDS);
 		} catch (InterruptedException e) {
 			log.info("Executor interrupted");
-		}*/
+		}
 
-		while (filesShuffledCount.get() != totalFiles) {
+		/*while (filesShuffledCount.get() != totalFiles) {
 			log.info("Waiting for all files to be reshuffled");
 			try {
 				Thread.sleep(20000);
 			} catch (InterruptedException e) {
 				log.severe("Thread sleep interrupted when waiting for all files to be reshuffled");
 			}
-		}
+		}*/
 
 		log.info("Reshuffling done");
 
-		try {
-			log.info("Closing file writer");
-			fw.close();
-		}
-		catch (Exception e) {
-			log.severe("Failed while closing file writer for its own file");
-		}
 		for (String ipAddress : ipToMaxMap.keySet()) {
 			//Upload file to S3
 			try {

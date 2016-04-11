@@ -3,6 +3,7 @@ package edu.hadoop.a9.slave;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.FileWriter;
 import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.io.StringWriter;
@@ -27,6 +28,7 @@ public class ShufflingTask implements Runnable {
 	Map<String, Integer> ipToCountOfRequests;
 	Map<String, StringBuilder> ipToActualRequestString;
 	int count;
+	private FileWriter fw;
 
 	public ShufflingTask(File f, Map<String, Double> ipToMaxMap, Map<String, Double> ipToMinMap, String instanceIP) {
 		this.file = f;
@@ -36,7 +38,6 @@ public class ShufflingTask implements Runnable {
 		this.ipToCountOfRequests = new HashMap<String, Integer>(ipToMaxMap.size());
 		this.ipToActualRequestString = new HashMap<String, StringBuilder>(ipToMaxMap.size());
 		unsortedData = new LinkedList<>();
-
 	}
 
 	public void run() {
@@ -44,13 +45,14 @@ public class ShufflingTask implements Runnable {
 			CSVReader reader = new CSVReader(br);
 			String[] line = null;
 			reader.readNext();
+			log.info("Going through file: " + file.getName());
 			while ((line = reader.readNext()) != null) {
 				if (!(line.length < 9) && !line[SortNode.DRY_BULB_COL].equals("-")) {
 					double dryBulbTemp;
 					try {
 						dryBulbTemp = Double.parseDouble(line[SortNode.DRY_BULB_COL]);
 					} catch (Exception e) {
-						log.info("Failed to parse value to Double: " + line[SortNode.DRY_BULB_COL]);
+						log.info(String.format("[%s] Failed to parse value to Double: %s", file.getName(), line[SortNode.DRY_BULB_COL]));
 						continue;
 					}
 					// Check which partition it lies within and send to
@@ -61,28 +63,48 @@ public class ShufflingTask implements Runnable {
 							if (instanceIp.equals(INSTANCE_IP)) {
 								unsortedData.add(line);
 							} else {
-								if (!ipToCountOfRequests.containsKey(instanceIp)) {
-									ipToCountOfRequests.put(instanceIp, 0);
+								String fileNameWithoutFormat = file.getName().replace(".txt.gz", "");
+								File directory = new File(instanceIp);
+								
+								if (!directory.isDirectory()) {
+									directory.mkdir();
+									log.info("Creating directory: " + directory.getName());
 								}
-								if (!ipToActualRequestString.containsKey(instanceIp)) {
-									ipToActualRequestString.put(instanceIp, new StringBuilder());
+								
+								File f = new File(instanceIp, instanceIp+ "-" + fileNameWithoutFormat + ".csv");
+//								
+								if (!f.exists()) {
+									f.createNewFile();
+									log.info("Trying to create a file named: " + f.getName());
 								}
-
-								if (ipToCountOfRequests.get(instanceIp) < SortNode.NUMBER_OF_REQUESTS_STORED) {
-									ipToCountOfRequests.put(instanceIp, ipToCountOfRequests.get(instanceIp) + 1);
-									ipToActualRequestString.put(instanceIp,
-											ipToActualRequestString.get(instanceIp).append(Arrays.toString(line) + ":"));
-								} else {
-									ipToActualRequestString.put(instanceIp,
-											ipToActualRequestString.get(instanceIp).append(Arrays.toString(line) + ":"));
-									count++;
-									StringBuilder sb = ipToActualRequestString.get(instanceIp);
-									ipToActualRequestString.put(instanceIp, new StringBuilder());
-									ipToCountOfRequests.put(instanceIp, 0);
-									String recordList = sb.deleteCharAt(sb.length()-1).toString();
-									SortNode.sendRequestToSortNode(recordList, instanceIp + file.getName() + count,
-											instanceIp);
-								}
+								
+								fw = new FileWriter(f, true);
+								fw.write(Arrays.toString(line) + "\n");
+								fw.close();
+//								if (!ipToCountOfRequests.containsKey(instanceIp)) {
+//									ipToCountOfRequests.put(instanceIp, 0);
+//								}
+//								if (!ipToActualRequestString.containsKey(instanceIp)) {
+//									ipToActualRequestString.put(instanceIp, new StringBuilder());
+//								}
+//
+//								if (ipToCountOfRequests.get(instanceIp) < SortNode.NUMBER_OF_REQUESTS_STORED) {
+//									ipToCountOfRequests.put(instanceIp, ipToCountOfRequests.get(instanceIp) + 1);
+//									ipToActualRequestString.put(instanceIp,
+//											ipToActualRequestString.get(instanceIp).append(Arrays.toString(line) + ":"));
+//								} else {
+//									ipToActualRequestString.put(instanceIp,
+//											ipToActualRequestString.get(instanceIp).append(Arrays.toString(line) + ":"));
+//									count++;
+//									StringBuilder sb = ipToActualRequestString.get(instanceIp);
+//									ipToActualRequestString.put(instanceIp, new StringBuilder());
+//									ipToCountOfRequests.put(instanceIp, 0);
+//									String recordList = sb.deleteCharAt(sb.length()-1).toString();
+//									SortNode.sendRequestToSortNode(recordList, instanceIp + file.getName() + count,
+//											instanceIp);
+//								}
+								
+								
 							}
 							break;
 						}
@@ -94,16 +116,16 @@ public class ShufflingTask implements Runnable {
 			log.info("No of files processed: " + SortNode.filesShuffledCount.get());
 			SortNode.addUnsortedData(unsortedData);
 
-			for (String ipAddress : ipToCountOfRequests.keySet()) {
-				log.info("Flush out remaining data to Sort Node: " + ipAddress);
-				if (ipToCountOfRequests.get(ipAddress) > 0) {
-					StringBuilder sb = ipToActualRequestString.get(ipAddress);
-					ipToActualRequestString.put(ipAddress, new StringBuilder());
-					ipToCountOfRequests.put(ipAddress, 0);
-					String recordList = sb.deleteCharAt(sb.length()-1).toString();
-					SortNode.sendRequestToSortNode(recordList, ipAddress + file.getName() + (++count), ipAddress);
-				}
-			}
+//			for (String ipAddress : ipToCountOfRequests.keySet()) {
+//				log.info("Flush out remaining data to Sort Node: " + ipAddress);
+//				if (ipToCountOfRequests.get(ipAddress) > 0) {
+//					StringBuilder sb = ipToActualRequestString.get(ipAddress);
+//					ipToActualRequestString.put(ipAddress, new StringBuilder());
+//					ipToCountOfRequests.put(ipAddress, 0);
+//					String recordList = sb.deleteCharAt(sb.length()-1).toString();
+//					SortNode.sendRequestToSortNode(recordList, ipAddress + file.getName() + (++count), ipAddress);
+//				}
+//			}
 		} catch (Exception e) {
 			log.severe("Failed while parsing value: " + e.getLocalizedMessage());
 			StringWriter errors = new StringWriter();

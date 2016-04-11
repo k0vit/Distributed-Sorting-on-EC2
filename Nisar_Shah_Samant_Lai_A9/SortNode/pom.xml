@@ -94,5 +94,11 @@
             <artifactId>externalsortinginjava</artifactId>
             <version>0.1.9</version>
         </dependency>
+        <dependency>
+	<groupId>net.java.dev.jets3t</groupId>
+	<artifactId>jets3t</artifactId>
+	<version>0.9.4</version>
+</dependency>
+        
 	</dependencies>
 </project>

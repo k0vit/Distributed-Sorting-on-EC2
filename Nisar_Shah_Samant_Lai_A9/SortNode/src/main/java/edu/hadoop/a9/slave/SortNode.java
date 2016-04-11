@@ -5,10 +5,18 @@ import static spark.Spark.post;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
+import java.io.FileWriter;
+import java.io.FilenameFilter;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.net.InetAddress;
+import java.nio.channels.FileChannel;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.nio.file.StandardOpenOption;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedList;
@@ -19,11 +27,20 @@ import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Logger;
 
+import org.jets3t.service.S3Service;
+import org.jets3t.service.impl.rest.httpclient.RestS3Service;
+import org.jets3t.service.model.S3Bucket;
+import org.jets3t.service.model.S3Object;
+import org.jets3t.service.multi.DownloadPackage;
+import org.jets3t.service.multi.SimpleThreadedStorageService;
+import org.jets3t.service.security.AWSCredentials;
+import org.jets3t.service.utils.MultipartUtils;
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
 import org.json.simple.parser.ParseException;
 
+import com.amazonaws.ClientConfiguration;
 import com.amazonaws.auth.BasicAWSCredentials;
 import com.amazonaws.services.s3.AmazonS3Client;
 
@@ -55,9 +72,10 @@ public class SortNode {
 	static int NO_OF_NODES_WITH_WORK = 0;
 	public static AtomicInteger filesShuffledCount = new AtomicInteger(0);
 	public static List<String> s3FileLocation = Collections.synchronizedList(new LinkedList<String>());
-	public static List<String[]> unsortedData = Collections.synchronizedList(new LinkedList<String[]>());
+//	public static List<String[]> unsortedData = Collections.synchronizedList(new LinkedList<String[]>());
 	public static S3Wrapper wrapper;
 	public static String outputS3Path;
+	private static FileWriter fw;
 
 	public static void main(String[] args) {
 		if (args.length != 5) {
@@ -83,10 +101,12 @@ public class SortNode {
 		log.info("Application Initialized");
 
 		try {
+			ClientConfiguration conf = new ClientConfiguration();
+			conf.setMaxConnections(1000);
 			INSTANCE_IP = InetAddress.getLocalHost().getHostAddress();
 			log.info("Instance IP: " + INSTANCE_IP);
 			BasicAWSCredentials awsCredentials = new BasicAWSCredentials(accessKey, secretKey);
-			AmazonS3Client s3client = new AmazonS3Client(awsCredentials);
+			AmazonS3Client s3client = new AmazonS3Client(awsCredentials, conf);
 			wrapper = new S3Wrapper(s3client);
 
 			// This downloads the config file on the local directory.
@@ -101,7 +121,7 @@ public class SortNode {
 
 			// Receive data from other sort nodes in the different list.
 			log.info("Entering method: receiveDataFromOtherSortNodes");
-			receiveDataFromOtherSortNodes();
+//			receiveDataFromOtherSortNodes();
 			log.info("Leaving method: receiveDataFromOtherSortNodes");
 
 			// Once all data is received then sort the data and upload result
@@ -189,7 +209,7 @@ public class SortNode {
 		}*/
 
 		while (filesShuffledCount.get() != totalFiles) {
-			log.info("Waiting for all files to be resuffled");
+			log.info("Waiting for all files to be reshuffled");
 			try {
 				Thread.sleep(20000);
 			} catch (InterruptedException e) {
@@ -197,15 +217,63 @@ public class SortNode {
 			}
 		}
 		
-		log.info("Resuffling done");
+		log.info("Reshuffling done");
 		
 		for (String ipAddress : ipToMaxMap.keySet()) {
+			//Upload file to S3
+			try {
+				File[] files = listDirectory(System.getProperty("user.dir") + "/" + ipAddress);
+				List objectsToUploadAsMultipart = new ArrayList();
+				for (File singleFile : files) {
+					S3Object largeObj = new S3Object(singleFile);
+					objectsToUploadAsMultipart.add(largeObj);
+				}
+				
+				long maxSizeForAPartInBytes = 20 * 1024 * 1024;
+				MultipartUtils mpUtils = new MultipartUtils(maxSizeForAPartInBytes);
+				
+				AWSCredentials awsCred = new AWSCredentials(accessKey, secretKey);
+				
+				S3Service s3Service = new RestS3Service(awsCred);
+//				String bucketPath = outputS3Path.replace("s3://", "");
+				s3Service.createBucket(ipAddress);
+				log.info("THE BUCKET PATH IS " + ipAddress);
+				mpUtils.uploadObjects(ipAddress, s3Service, objectsToUploadAsMultipart, null);
+				for (File singleFile: files) {
+					if(singleFile.delete()) {
+						log.info("File deleted successfully: " + singleFile.getAbsolutePath());
+					}
+				}
+			} catch (Exception e) {
+				log.info("JetS3t error: " + e.getMessage());
+			}
 			NodeCommWrapper.SendData(ipAddress, PORT_FOR_COMM, END_URL, "EOF");
 		}
 	}
 	
 	public static synchronized void addUnsortedData(List<String[]> unsortedDat) {
-		unsortedData.addAll(unsortedDat);
+		File f = new File(INSTANCE_IP + "-allhourly.csv");
+		if (!f.exists()) {
+			try {
+				f.createNewFile();
+			} catch (IOException e) {
+				log.info("Could not create a new file: " + f.getAbsolutePath());
+			}
+		}
+		try {
+			fw = new FileWriter(f);
+		} catch (IOException e) {
+			log.info("Could not open file for writing: " + f.getAbsolutePath());
+		}
+		for (String[] st : unsortedDat) {
+			try {
+				fw.write(Arrays.toString(st));
+			} catch (IOException e) {
+				log.info("Could not write to file: " + f.getAbsolutePath());
+			}
+		}
+		
+//		unsortedData.addAll(unsortedDat);
 	}
 
 	/**
@@ -240,12 +308,25 @@ public class SortNode {
 			if (NO_OF_SORT_NODES_WHERE_DATA_IS_RECEIVED.get() == NO_OF_NODES_WITH_WORK) {
 				log.info("Received data from all sort nodes");
 				log.info("Start sorting data....");
-				log.info("Files to sort from " + s3FileLocation);
-				//sortYourOwnData();
+//				log.info("Files to sort from " + s3FileLocation);
+				//DOwnload data from S3Bucket into local file.
+				AWSCredentials awsCred = new AWSCredentials(accessKey, secretKey);
+				S3Service s3Service = new RestS3Service(awsCred);
+				S3Bucket s3Bucket = s3Service.getBucket(INSTANCE_IP);
+				S3Object[] bucketFiles = s3Service.listObjects(s3Bucket.getName());
+				SimpleThreadedStorageService simpleMulti = new SimpleThreadedStorageService(s3Service);
+				DownloadPackage[] downloadPackages = new DownloadPackage[bucketFiles.length];
+				for (int i = 0; i < downloadPackages.length; i++) {
+					downloadPackages[i] = new DownloadPackage(bucketFiles[i], new File(bucketFiles[i].getKey()));
+				}	
+				
+				simpleMulti.downloadObjects(INSTANCE_IP, downloadPackages);
+				
+				sortYourOwnData();
 				//if (wrapper.uploadFileS3(outputS3Path, unsortedData, INSTANCE_ID)) {
 				if (true) {
-					log.info("THis is INSTANCE_ID: " + INSTANCE_ID);
-					log.info(String.format("Data uploaded to S3 @ %s", outputS3Path));
+					log.info("This is INSTANCE_ID: " + INSTANCE_ID);
+//					log.info(String.format("Data uploaded to S3 @ %s", outputS3Path));
 					NodeCommWrapper.SendData(clientIp, PORT_FOR_COMM, END_OF_SORTING_URL, "SORTED");
 				}
 			}
@@ -384,25 +465,58 @@ public class SortNode {
 	/**
 	 * 
 	 */
-	/*private static void sortYourOwnData() {
+	private static void sortYourOwnData() {
 		log.info("Sorting sort node data now...");
-		unsortedData.addAll(dataFromOtherNodes);
-		Collections.sort(unsortedData, new Comparator<String[]>() {
-			@Override
-			public int compare(String[] o1, String[] o2) {
-				if (o1.length < 9 || o2.length < 9) {
-					log.info("String length o1: " + o1.length);
-					log.info("String length o2: " + o2.length);
-					log.severe("o1: " + Arrays.toString(o1));
-					log.severe("o2: " + Arrays.toString(o2));
-					return 0;
-				} else {
-					return (o1[DRY_BULB_COL].compareTo(o2[DRY_BULB_COL]));
+		Path outFile = Paths.get(System.getProperty("user.dir"), "result.csv");
+//		File[] files = listDirectory(System.getProperty("user.dir"));
+		File root = new File(System.getProperty("user.dir"));
+		File[] fileList = root.listFiles(new FilenameFilter() {
+			public boolean accept(File root, String name) {
+		        return name.toLowerCase().endsWith("hours.csv");
+		    }
+		});
+		
+		//MERGING FILES LOGIC		
+		try (FileChannel out = FileChannel.open(outFile, StandardOpenOption.CREATE, StandardOpenOption.WRITE)) {
+			for (int i = 0; i < fileList.length; i++) {
+				Path inFile = fileList[i].toPath();
+				log.info("Merging: " + inFile + "...");
+				try (FileChannel in = FileChannel.open(inFile, StandardOpenOption.READ)) {
+					for (long p = 0, l = in.size(); p < l; p++)
+						p += in.transferTo(p, l - p, out);
 				}
 			}
-		});
+			log.info("MERGING SUCCESSFUL");
+		} catch (IOException e) {
+			log.info("Exception in merging operation: " + e.getMessage());
+		}
+		
+		try {
+			ExternalSorter.externalSort("result.csv", "part-r-file.csv");
+		} catch (IOException e) {
+			log.info("External sort unsuccessful: " + e.getMessage());
+		}
+		
+		
+		
+		
+//		unsortedData.addAll(dataFromOtherNodes);
+//		Collections.sort(unsortedData, new Comparator<String[]>() {
+//			@Override
+//			public int compare(String[] o1, String[] o2) {
+//				if (o1.length < 9 || o2.length < 9) {
+//					log.info("String length o1: " + o1.length);
+//					log.info("String length o2: " + o2.length);
+//					log.severe("o1: " + Arrays.toString(o1));
+//					log.severe("o2: " + Arrays.toString(o2));
+//					return 0;
+//				} else {
+//					return (o1[DRY_BULB_COL].compareTo(o2[DRY_BULB_COL]));
+//				}
+//			}
+//		});
 		log.info("Sorting sort node data finished !");
-	}*/
+	}
 
 	/**
 	 * 

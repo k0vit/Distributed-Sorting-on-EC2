@@ -324,11 +324,30 @@ public class SortNode {
 				
 				sortYourOwnData();
 				//if (wrapper.uploadFileS3(outputS3Path, unsortedData, INSTANCE_ID)) {
-				if (true) {
-					log.info("This is INSTANCE_ID: " + INSTANCE_ID);
-//					log.info(String.format("Data uploaded to S3 @ %s", outputS3Path));
-					NodeCommWrapper.SendData(clientIp, PORT_FOR_COMM, END_OF_SORTING_URL, "SORTED");
-				}
+				
+				
+				//UPLOAD TO S3 LOGIC
+				String outputPath = outputS3Path.replace("s3://", "");
+				String[] splitOutput = outputPath.split("/"); 
+				String bucketName = splitOutput[0];
+				String key = splitOutput[1];
+				
+				File resultFile = new File(System.getProperty("user.dir") + "/" + "part-r-" + INSTANCE_ID + ".csv");
+				List objectsToUploadAsMultipart = new ArrayList();
+				S3Object largeObj = new S3Object(resultFile);
+				largeObj.setKey(key + "/" + largeObj.getKey());
+				objectsToUploadAsMultipart.add(largeObj);
+				
+				long maxSizeForAPartInBytes = 20 * 1024 * 1024;
+				MultipartUtils mpUtils = new MultipartUtils(maxSizeForAPartInBytes);
+				
+				log.info("THE BUCKET PATH IS " + outputS3Path);
+				mpUtils.uploadObjects(bucketName, s3Service, objectsToUploadAsMultipart, null);
+				
+				log.info("This is INSTANCE_ID: " + INSTANCE_ID);
+				log.info(String.format("Data uploaded to S3 @ %s", outputS3Path));
+				
+				NodeCommWrapper.SendData(clientIp, PORT_FOR_COMM, END_OF_SORTING_URL, "SORTED");
 			}
 			response.status(200);
 			response.body("SUCCESS");
@@ -472,7 +491,7 @@ public class SortNode {
 		File root = new File(System.getProperty("user.dir"));
 		File[] fileList = root.listFiles(new FilenameFilter() {
 			public boolean accept(File root, String name) {
-		        return name.toLowerCase().endsWith("hours.csv");
+		        return name.matches(".*?hourly.csv.*");
 		    }
 		});
 		
@@ -491,8 +510,9 @@ public class SortNode {
 			log.info("Exception in merging operation: " + e.getMessage());
 		}
 		
+		log.info("Now starting external sort");
 		try {
-			ExternalSorter.externalSort("result.csv", "part-r-file.csv");
+			ExternalSorter.externalSort("result.csv", "part-r-" + INSTANCE_ID + ".csv");
 		} catch (IOException e) {
 			log.info("External sort unsuccessful: " + e.getMessage());
 		}

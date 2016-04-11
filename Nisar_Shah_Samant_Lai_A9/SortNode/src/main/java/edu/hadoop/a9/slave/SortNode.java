@@ -23,7 +23,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadPoolExecutor;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Logger;
 
@@ -72,7 +71,7 @@ public class SortNode {
 	static String jsonPartitions;
 	static boolean partitionReceived = false;
 	static int NO_OF_NODES_WITH_WORK = 0;
-	public static AtomicInteger filesShuffledCount = new AtomicInteger(0);
+	public static int filesShuffledCount = 0;
 	public static List<String> s3FileLocation = Collections.synchronizedList(new LinkedList<String>());
 	//	public static List<String[]> unsortedData = Collections.synchronizedList(new LinkedList<String[]>());
 	public static S3Wrapper wrapper;
@@ -178,13 +177,6 @@ public class SortNode {
 			Double minimumPartition = (Double) jsonObject.get("min");
 			Double maximumPartition = (Double) jsonObject.get("max");
 			String nodeIp = (String) jsonObject.get("nodeIp");
-			if (Integer.parseInt(instanceId) == 0) {
-				maximumPartition = 50.0;
-			}
-			if (Integer.parseInt(instanceId) == 1) {
-				minimumPartition = 50.1;
-			}
-			
 
 			if (instanceId.equals("NOWORK")) {
 				if (nodeIp == INSTANCE_IP) {
@@ -234,23 +226,24 @@ public class SortNode {
 				executor.execute(task);
 			}
 		}
+		log.info("total files " + totalFiles);
 		log.info("Executor shutdown");
 		executor.shutdown();
 
-		try {
+		/*try {
 			executor.awaitTermination(Long.MAX_VALUE, TimeUnit.MILLISECONDS);
 		} catch (InterruptedException e) {
 			log.severe("ERROR Executor interrupted");
-		}
+		}*/
 
-		/*while (filesShuffledCount.get() != totalFiles) {
+		while (filesShuffledCount != totalFiles) {
 			log.info("Waiting for all files to be reshuffled");
 			try {
 				Thread.sleep(20000);
 			} catch (InterruptedException e) {
 				log.severe("Thread sleep interrupted when waiting for all files to be reshuffled");
 			}
-		}*/
+		}
 
 		log.info("Reshuffling done");
 
@@ -291,6 +284,11 @@ public class SortNode {
 			}
 			NodeCommWrapper.SendData(ipAddress, PORT_FOR_COMM, END_URL, "EOF");
 		}
+	}
+	
+	public static synchronized int addFileProcessedCounter() {
+		filesShuffledCount = filesShuffledCount + 1;
+		return filesShuffledCount;
 	}
 
 	/**

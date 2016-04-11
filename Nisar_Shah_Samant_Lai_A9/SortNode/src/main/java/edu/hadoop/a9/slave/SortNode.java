@@ -16,7 +16,6 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedList;
@@ -174,10 +173,11 @@ public class SortNode {
 		JSONArray array = (JSONArray) entireJSON.get("partitions");
 		for (int i = 0; i < array.size(); i++) {
 			JSONObject jsonObject = (JSONObject) array.get(i);
+			String instanceId = (String) jsonObject.get("instanceId");
 			Double minimumPartition = (Double) jsonObject.get("min");
 			Double maximumPartition = (Double) jsonObject.get("max");
 			String nodeIp = (String) jsonObject.get("nodeIp");
-			String instanceId = (String) jsonObject.get("instanceId");
+			
 			if (instanceId.equals("NOWORK")) {
 				if (nodeIp == INSTANCE_IP) {
 					System.exit(0);
@@ -198,6 +198,21 @@ public class SortNode {
 				ipToMinMap.put(nodeIp, minimumPartition);
 			}
 		}
+		
+
+		File f = new File(INSTANCE_IP + "-allhourly.csv");
+		if (!f.exists()) {
+			try {
+				f.createNewFile();
+			} catch (IOException e) {
+				log.info("Could not create a new file: " + f.getAbsolutePath());
+			}
+		}
+		try {
+			fw = new FileWriter(f);
+		} catch (IOException e) {
+			log.info("Could not open file for writing: " + f.getAbsolutePath());
+		}
 
 		// Read local data line by line
 		ThreadPoolExecutor executor = (ThreadPoolExecutor) Executors.newFixedThreadPool(8);
@@ -206,7 +221,7 @@ public class SortNode {
 		for (File file : dataFolder) {
 			if (checkFileExtensionsIsGz(file.getName())) {
 				totalFiles++;
-				ShufflingTask task = new ShufflingTask(file, ipToMaxMap, ipToMinMap, INSTANCE_IP);
+				ShufflingTask task = new ShufflingTask(file, ipToMaxMap, ipToMinMap, INSTANCE_IP, fw);
 				log.info("ShufflingTask started");
 				executor.execute(task);
 			}
@@ -263,31 +278,6 @@ public class SortNode {
 		}
 	}
 	
-	public static synchronized void addUnsortedData(List<String[]> unsortedDat) {
-		File f = new File(INSTANCE_IP + "-allhourly.csv");
-		if (!f.exists()) {
-			try {
-				f.createNewFile();
-			} catch (IOException e) {
-				log.info("Could not create a new file: " + f.getAbsolutePath());
-			}
-		}
-		try {
-			fw = new FileWriter(f);
-		} catch (IOException e) {
-			log.info("Could not open file for writing: " + f.getAbsolutePath());
-		}
-		for (String[] st : unsortedDat) {
-			try {
-				fw.write(Arrays.toString(st));
-			} catch (IOException e) {
-				log.info("Could not write to file: " + f.getAbsolutePath());
-			}
-		}
-		
-//		unsortedData.addAll(unsortedDat);
-	}
-
 	/**
 	 * 
 	 */

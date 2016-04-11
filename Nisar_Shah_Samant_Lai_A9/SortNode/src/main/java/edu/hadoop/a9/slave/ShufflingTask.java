@@ -9,8 +9,6 @@ import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.util.Arrays;
 import java.util.HashMap;
-import java.util.LinkedList;
-import java.util.List;
 import java.util.Map;
 import java.util.logging.Logger;
 import java.util.zip.GZIPInputStream;
@@ -24,20 +22,20 @@ public class ShufflingTask implements Runnable {
 	private Map<String, Double> ipToMaxMap;
 	private Map<String, Double> ipToMinMap;
 	private String INSTANCE_IP;
-	private List<String[]> unsortedData;
 	Map<String, Integer> ipToCountOfRequests;
 	Map<String, StringBuilder> ipToActualRequestString;
 	int count;
 	private FileWriter fw;
 
-	public ShufflingTask(File f, Map<String, Double> ipToMaxMap, Map<String, Double> ipToMinMap, String instanceIP) {
+	public ShufflingTask(File f, Map<String, Double> ipToMaxMap, Map<String, Double> ipToMinMap,
+			String instanceIP, FileWriter fw) {
 		this.file = f;
 		this.ipToMaxMap = ipToMaxMap;
 		this.ipToMinMap = ipToMinMap;
 		this.INSTANCE_IP = instanceIP;
 		this.ipToCountOfRequests = new HashMap<String, Integer>(ipToMaxMap.size());
 		this.ipToActualRequestString = new HashMap<String, StringBuilder>(ipToMaxMap.size());
-		unsortedData = new LinkedList<>();
+		this.fw = fw;
 	}
 
 	public void run() {
@@ -61,7 +59,7 @@ public class ShufflingTask implements Runnable {
 						if (dryBulbTemp >= ipToMinMap.get(instanceIp)
 								&& dryBulbTemp <= ipToMaxMap.get(instanceIp)) {
 							if (instanceIp.equals(INSTANCE_IP)) {
-								unsortedData.add(line);
+								fw.write(Arrays.toString(line));
 							} else {
 								String fileNameWithoutFormat = file.getName().replace(".txt.gz", "");
 								File directory = new File(instanceIp);
@@ -114,9 +112,8 @@ public class ShufflingTask implements Runnable {
 			reader.close();
 			SortNode.filesShuffledCount.getAndIncrement();
 			log.info("No of files processed: " + SortNode.filesShuffledCount.get());
-			SortNode.addUnsortedData(unsortedData);
 
-//			for (String ipAddress : ipToCountOfRequests.keySet()) {
+//		for (String ipAddress : ipToCountOfRequests.keySet()) {
 //				log.info("Flush out remaining data to Sort Node: " + ipAddress);
 //				if (ipToCountOfRequests.get(ipAddress) > 0) {
 //					StringBuilder sb = ipToActualRequestString.get(ipAddress);

@@ -5,7 +5,6 @@ import static spark.Spark.post;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
-import java.io.FileWriter;
 import java.io.FilenameFilter;
 import java.io.IOException;
 import java.io.PrintWriter;
@@ -72,7 +71,7 @@ public class SortNode {
 	static String jsonPartitions;
 	static boolean partitionReceived = false;
 	static int NO_OF_NODES_WITH_WORK = 0;
-	public static AtomicInteger filesShuffledCount = new AtomicInteger(0);
+	public static int filesShuffledCount = 0;
 	public static List<String> s3FileLocation = Collections.synchronizedList(new LinkedList<String>());
 	//	public static List<String[]> unsortedData = Collections.synchronizedList(new LinkedList<String[]>());
 	public static S3Wrapper wrapper;
@@ -212,6 +211,7 @@ public class SortNode {
 				executor.execute(task);
 			}
 		}
+		log.info("total files " + totalFiles);
 		log.info("Executor shutdown");
 		executor.shutdown();
 
@@ -221,7 +221,7 @@ public class SortNode {
 			log.info("Executor interrupted");
 		}
 
-		/*while (filesShuffledCount.get() != totalFiles) {
+		/*while (filesShuffledCount != totalFiles) {
 			log.info("Waiting for all files to be reshuffled");
 			try {
 				Thread.sleep(20000);
@@ -262,6 +262,11 @@ public class SortNode {
 			}
 			NodeCommWrapper.SendData(ipAddress, PORT_FOR_COMM, END_URL, "EOF");
 		}
+	}
+	
+	public static synchronized int addFileProcessedCounter() {
+		filesShuffledCount = filesShuffledCount + 1;
+		return filesShuffledCount;
 	}
 
 	/**

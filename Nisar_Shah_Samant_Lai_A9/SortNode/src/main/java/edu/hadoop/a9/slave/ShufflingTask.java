@@ -101,8 +101,8 @@ public class ShufflingTask implements Runnable {
 			}
 			fw.close();
 			reader.close();
-			SortNode.filesShuffledCount.getAndIncrement();
-			log.info("No of files processed: " + SortNode.filesShuffledCount.get());
+			int a = SortNode.addFileProcessedCounter();
+			log.info("No of files processed: " + a);
 		} catch (Exception e) {
 			log.severe("Failed while parsing value: " + e.getLocalizedMessage());
 			StringWriter errors = new StringWriter();

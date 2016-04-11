@@ -221,7 +221,7 @@ public class SortNode {
 		for (File file : dataFolder) {
 			if (checkFileExtensionsIsGz(file.getName())) {
 				totalFiles++;
-				ShufflingTask task = new ShufflingTask(file, ipToMaxMap, ipToMinMap, INSTANCE_IP, fw);
+				ShufflingTask task = new ShufflingTask(file, ipToMaxMap, ipToMinMap, INSTANCE_IP);
 				log.info("ShufflingTask started");
 				executor.execute(task);
 			}

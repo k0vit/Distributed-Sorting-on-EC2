@@ -73,7 +73,7 @@ public class SortNode {
 	static int NO_OF_NODES_WITH_WORK = 0;
 	public static AtomicInteger filesShuffledCount = new AtomicInteger(0);
 	public static List<String> s3FileLocation = Collections.synchronizedList(new LinkedList<String>());
-//	public static List<String[]> unsortedData = Collections.synchronizedList(new LinkedList<String[]>());
+	//	public static List<String[]> unsortedData = Collections.synchronizedList(new LinkedList<String[]>());
 	public static S3Wrapper wrapper;
 	public static String outputS3Path;
 	private static FileWriter fw;
@@ -104,11 +104,11 @@ public class SortNode {
 				Jets3tProperties.getInstance(Constants.JETS3T_PROPERTIES_FILENAME);
 
 		// Override default properties (increase number of connections and
-//		myProperties.setProperty("httpclient.max-connections", "100");
+		//		myProperties.setProperty("httpclient.max-connections", "100");
 		myProperties.setProperty("threaded-service.max-thread-count", "8");
 		myProperties.setProperty("threaded-service.admin-max-thread-count", "8");
 		myProperties.setProperty("s3service.max-thread-count", "8");
-		
+
 		log.info("Application Initialized");
 
 		try {
@@ -132,7 +132,7 @@ public class SortNode {
 
 			// Receive data from other sort nodes in the different list.
 			log.info("Entering method: receiveDataFromOtherSortNodes");
-//			receiveDataFromOtherSortNodes();
+			//			receiveDataFromOtherSortNodes();
 			log.info("Leaving method: receiveDataFromOtherSortNodes");
 
 			// Once all data is received then sort the data and upload result
@@ -177,7 +177,7 @@ public class SortNode {
 			Double minimumPartition = (Double) jsonObject.get("min");
 			Double maximumPartition = (Double) jsonObject.get("max");
 			String nodeIp = (String) jsonObject.get("nodeIp");
-			
+
 			if (instanceId.equals("NOWORK")) {
 				if (nodeIp == INSTANCE_IP) {
 					System.exit(0);
@@ -198,7 +198,7 @@ public class SortNode {
 				ipToMinMap.put(nodeIp, minimumPartition);
 			}
 		}
-		
+
 
 		File f = new File(INSTANCE_IP + "-allhourly.csv");
 		if (!f.exists()) {
@@ -243,9 +243,16 @@ public class SortNode {
 				log.severe("Thread sleep interrupted when waiting for all files to be reshuffled");
 			}
 		}
-		
+
 		log.info("Reshuffling done");
-		
+
+		try {
+			log.info("Closing file writer");
+			fw.close();
+		}
+		catch (Exception e) {
+			log.severe("Failed while closing file writer for its own file");
+		}
 		for (String ipAddress : ipToMaxMap.keySet()) {
 			//Upload file to S3
 			try {
@@ -255,14 +262,14 @@ public class SortNode {
 					S3Object largeObj = new S3Object(singleFile);
 					objectsToUploadAsMultipart.add(largeObj);
 				}
-				
+
 				long maxSizeForAPartInBytes = 20 * 1024 * 1024;
 				MultipartUtils mpUtils = new MultipartUtils(maxSizeForAPartInBytes);
-				
+
 				AWSCredentials awsCred = new AWSCredentials(accessKey, secretKey);
-				
+
 				S3Service s3Service = new RestS3Service(awsCred);
-//				String bucketPath = outputS3Path.replace("s3://", "");
+				//				String bucketPath = outputS3Path.replace("s3://", "");
 				s3Service.createBucket(ipAddress);
 				log.info("THE BUCKET PATH IS " + ipAddress);
 				mpUtils.uploadObjects(ipAddress, s3Service, objectsToUploadAsMultipart, null);
@@ -277,7 +284,7 @@ public class SortNode {
 			NodeCommWrapper.SendData(ipAddress, PORT_FOR_COMM, END_URL, "EOF");
 		}
 	}
-	
+
 	/**
 	 * 
 	 */
@@ -310,7 +317,7 @@ public class SortNode {
 			if (NO_OF_SORT_NODES_WHERE_DATA_IS_RECEIVED.get() == NO_OF_NODES_WITH_WORK) {
 				log.info("Received data from all sort nodes");
 				log.info("Start sorting data....");
-//				log.info("Files to sort from " + s3FileLocation);
+				//				log.info("Files to sort from " + s3FileLocation);
 				//DOwnload data from S3Bucket into local file.
 				AWSCredentials awsCred = new AWSCredentials(accessKey, secretKey);
 				S3Service s3Service = new RestS3Service(awsCred);
@@ -321,34 +328,34 @@ public class SortNode {
 				for (int i = 0; i < downloadPackages.length; i++) {
 					downloadPackages[i] = new DownloadPackage(bucketFiles[i], new File(bucketFiles[i].getKey()));
 				}	
-				
+
 				simpleMulti.downloadObjects(INSTANCE_IP, downloadPackages);
-				
+
 				sortYourOwnData();
 				//if (wrapper.uploadFileS3(outputS3Path, unsortedData, INSTANCE_ID)) {
-				
-				
+
+
 				//UPLOAD TO S3 LOGIC
 				String outputPath = outputS3Path.replace("s3://", "");
 				String[] splitOutput = outputPath.split("/"); 
 				String bucketName = splitOutput[0];
 				String key = splitOutput[1];
-				
+
 				File resultFile = new File(System.getProperty("user.dir") + "/" + "part-r-" + INSTANCE_ID + ".csv");
 				List objectsToUploadAsMultipart = new ArrayList();
 				S3Object largeObj = new S3Object(resultFile);
 				largeObj.setKey(key + "/" + largeObj.getKey());
 				objectsToUploadAsMultipart.add(largeObj);
-				
+
 				long maxSizeForAPartInBytes = 20 * 1024 * 1024;
 				MultipartUtils mpUtils = new MultipartUtils(maxSizeForAPartInBytes);
-				
+
 				log.info("THE BUCKET PATH IS " + outputS3Path);
 				mpUtils.uploadObjects(bucketName, s3Service, objectsToUploadAsMultipart, null);
-				
+
 				log.info("This is INSTANCE_ID: " + INSTANCE_ID);
 				log.info(String.format("Data uploaded to S3 @ %s", outputS3Path));
-				
+
 				NodeCommWrapper.SendData(clientIp, PORT_FOR_COMM, END_OF_SORTING_URL, "SORTED");
 			}
 			response.status(200);
@@ -362,7 +369,7 @@ public class SortNode {
 	 * 
 	 */
 	public static void readPartitionsFromClient() {
-		
+
 		post("/partitions", (request, response) -> {
 			log.info("Received partitions from the client!");
 			log.info("Partition is as follows: " + request.body());
@@ -489,14 +496,14 @@ public class SortNode {
 	private static void sortYourOwnData() {
 		log.info("Sorting sort node data now...");
 		Path outFile = Paths.get(System.getProperty("user.dir"), "result.csv");
-//		File[] files = listDirectory(System.getProperty("user.dir"));
+		//		File[] files = listDirectory(System.getProperty("user.dir"));
 		File root = new File(System.getProperty("user.dir"));
 		File[] fileList = root.listFiles(new FilenameFilter() {
 			public boolean accept(File root, String name) {
-		        return name.matches(".*?hourly.csv.*");
-		    }
+				return name.matches(".*?hourly.csv.*");
+			}
 		});
-		
+
 		//MERGING FILES LOGIC		
 		try (FileChannel out = FileChannel.open(outFile, StandardOpenOption.CREATE, StandardOpenOption.WRITE)) {
 			for (int i = 0; i < fileList.length; i++) {
@@ -511,32 +518,32 @@ public class SortNode {
 		} catch (IOException e) {
 			log.info("Exception in merging operation: " + e.getMessage());
 		}
-		
+
 		log.info("Now starting external sort");
 		try {
 			ExternalSorter.externalSort("result.csv", "part-r-" + INSTANCE_ID + ".csv");
 		} catch (IOException e) {
 			log.info("External sort unsuccessful: " + e.getMessage());
 		}
-		
-		
-		
-		
-//		unsortedData.addAll(dataFromOtherNodes);
-//		Collections.sort(unsortedData, new Comparator<String[]>() {
-//			@Override
-//			public int compare(String[] o1, String[] o2) {
-//				if (o1.length < 9 || o2.length < 9) {
-//					log.info("String length o1: " + o1.length);
-//					log.info("String length o2: " + o2.length);
-//					log.severe("o1: " + Arrays.toString(o1));
-//					log.severe("o2: " + Arrays.toString(o2));
-//					return 0;
-//				} else {
-//					return (o1[DRY_BULB_COL].compareTo(o2[DRY_BULB_COL]));
-//				}
-//			}
-//		});
+
+
+
+
+		//		unsortedData.addAll(dataFromOtherNodes);
+		//		Collections.sort(unsortedData, new Comparator<String[]>() {
+		//			@Override
+		//			public int compare(String[] o1, String[] o2) {
+		//				if (o1.length < 9 || o2.length < 9) {
+		//					log.info("String length o1: " + o1.length);
+		//					log.info("String length o2: " + o2.length);
+		//					log.severe("o1: " + Arrays.toString(o1));
+		//					log.severe("o2: " + Arrays.toString(o2));
+		//					return 0;
+		//				} else {
+		//					return (o1[DRY_BULB_COL].compareTo(o2[DRY_BULB_COL]));
+		//				}
+		//			}
+		//		});
 		log.info("Sorting sort node data finished !");
 	}
 

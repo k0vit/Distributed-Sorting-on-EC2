@@ -26,6 +26,11 @@ import com.amazonaws.services.ec2.model.Reservation;
 import com.amazonaws.services.ec2.model.RunInstancesRequest;
 import com.amazonaws.services.ec2.model.RunInstancesResult;
 
+/**
+ * Creates ec2-isntances readign cluster.properties
+ * @author kovit
+ *
+ */
 public class ClusterCreator {
 
 	private ClusterParams params;
@@ -43,6 +48,7 @@ public class ClusterCreator {
 			createKey();
 			createSecurityGroup();
 
+			// code to create cluster instances
 			RunInstancesRequest runInstancesRequest = new RunInstancesRequest();
 			runInstancesRequest.withImageId(params.getBaseImageName())
 			.withInstanceType(params.getInstanceFlavor())
@@ -67,6 +73,8 @@ public class ClusterCreator {
 		}
 	}
 
+	// writes instance details to file, like private and public ip.
+	// Check InstnaceDetails.csv
 	private void writeInstanceDetails(String reservationId) {
 		try {
 			File file = new File(Main.CLUSTER_DETAILS_FILE_NAME);
@@ -75,6 +83,7 @@ public class ClusterCreator {
 
 			LOGGER.log(Level.FINE, "Fetching instances for reservation id " + reservationId);
 			boolean clientNodeCreated = false;
+			// checks the progress of cluster instnace creation
 			for (Reservation reservation: amazonEC2Client.describeInstances().getReservations()) {
 				if (reservation.getReservationId().equals(reservationId)) {
 					for (Instance inst : reservation.getInstances()) {
@@ -93,6 +102,8 @@ public class ClusterCreator {
 								LOGGER.log(Level.FINE, "State changed to " + state);
 							}
 						}
+						
+						// create InstnaceDetail.csv with all isntance details
 						StringBuilder instanceDetails = new StringBuilder();
 						instanceDetails.append(inst.getInstanceId()).append(",");
 						instanceDetails.append(inst.getPrivateIpAddress()).append(",");

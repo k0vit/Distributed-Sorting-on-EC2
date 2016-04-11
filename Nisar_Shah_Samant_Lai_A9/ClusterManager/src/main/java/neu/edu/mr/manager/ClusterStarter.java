@@ -10,6 +10,11 @@ import com.amazonaws.regions.Regions;
 import com.amazonaws.services.s3.AmazonS3Client;
 import com.amazonaws.services.s3.model.PutObjectRequest;
 
+/**
+ * Uploads the InstanceDetails.csv
+ * @author kovit
+ *
+ */
 public class ClusterStarter {
 
 	private ClusterParams params;

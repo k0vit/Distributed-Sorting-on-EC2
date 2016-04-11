@@ -8,6 +8,11 @@ import java.util.logging.ConsoleHandler;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+/**
+ * action = create, terminate or start
+ * @author kovit
+ *
+ */
 public class Main {
 
 	public static final String keyName = "a9key";

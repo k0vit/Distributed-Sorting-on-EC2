@@ -19,6 +19,11 @@ import com.amazonaws.services.ec2.model.InstanceStateName;
 import com.amazonaws.services.ec2.model.TerminateInstancesRequest;
 import com.amazonaws.services.s3.transfer.TransferManager;
 
+/**
+ * terminates the cluster instances, delete the key and security grp
+ * @author kovit
+ *
+ */
 public class ClusterTerminator {
 
 	private AmazonEC2Client amazonEC2Client;
@@ -36,10 +41,12 @@ public class ClusterTerminator {
 			TerminateInstancesRequest req = new TerminateInstancesRequest(instanceIds);
 			amazonEC2Client.terminateInstances(req);
 			LOGGER.log(Level.FINE, "terminating instances " + instanceIds);
+			// get all the instnace ids from the InstnaceDetails.csv
 			for (String id : instanceIds) {
 				DescribeInstancesRequest statusReq = new DescribeInstancesRequest();
 				statusReq.withInstanceIds(id);
 				String state = InstanceStateName.Running.toString();
+				// check the progress
 				while (!state.equals(InstanceStateName.Terminated.toString())) {
 					Thread.sleep(10000);
 					LOGGER.log(Level.FINE, "Sleeping for 10 seconds. State not changed");
@@ -85,6 +92,7 @@ public class ClusterTerminator {
 		return instanceIds;
 	}
 
+	// download the output
 	public boolean downloadOutput(String outputPath) {
 		try {
 			TransferManager tx = new TransferManager(crediantials);

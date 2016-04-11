@@ -215,20 +215,20 @@ public class SortNode {
 		log.info("Executor shutdown");
 		executor.shutdown();
 
-		try {
-			executor.awaitTermination(Long.MAX_VALUE, TimeUnit.NANOSECONDS);
-		} catch (InterruptedException e) {
-			log.info("Executor interrupted");
-		}
+//		try {
+//			executor.awaitTermination(Long.MAX_VALUE, TimeUnit.NANOSECONDS);
+//		} catch (InterruptedException e) {
+//			log.info("Executor interrupted");
+//		}
 
-		/*while (filesShuffledCount != totalFiles) {
+		while (filesShuffledCount != totalFiles) {
 			log.info("Waiting for all files to be reshuffled");
 			try {
 				Thread.sleep(20000);
 			} catch (InterruptedException e) {
 				log.severe("Thread sleep interrupted when waiting for all files to be reshuffled");
 			}
-		}*/
+		}
 
 		log.info("Reshuffling done");
 

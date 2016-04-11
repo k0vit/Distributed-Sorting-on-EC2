@@ -92,6 +92,7 @@ public class ShufflingTask implements Runnable {
 				}
 			}
 			fw.flush();
+			fw.close();
 			reader.close();
 			SortNode.filesShuffledCount.getAndIncrement();
 			log.info("No of files processed: " + SortNode.filesShuffledCount.get());
